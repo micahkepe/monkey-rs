@@ -11,3 +11,11 @@ language from Thorsten Ball's
 > _"But why the name? Why is it called “Monkey”? Well, because monkeys are
 > magnificent, elegant, fascinating and funny creatures. Exactly like our
 > interpreter"_ — Thorsten Ball
+
+## TODOs
+
+- [x] Lexer
+- [ ] Parser
+- [ ] Evaluation
+- [ ] Extending the Interpreter
+- [ ] Macro System ("The Lost Chapter")
