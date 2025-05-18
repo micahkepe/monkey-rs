@@ -1,7 +1,7 @@
 # monkey-rs 🦀
 
 <div align="center">
-    <img src="./assets/img/monkey-rs.png" width="25%" alt="monkey-rs logo"
+    <img src="./assets/img/monkey-rs.png" width="25%" alt="monkey-rs logo"/>
 </div>
 
 A Rust implementation of the [Monkey](https://monkeylang.org/) programming
