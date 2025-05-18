@@ -1,7 +1,6 @@
 use crate::token;
 
-/// The lexer uses to convert source code into tokens representing the source
-/// code.
+/// The lexer to convert source code into tokens representing the source code.
 #[derive(Debug)]
 struct Lexer<'a> {
     /// the input source code to tokenize
@@ -60,12 +59,16 @@ impl<'a> Lexer<'a> {
 
         let token = match self.ch {
             // Single character tokens
-            Some('=') => token::Token::Assign,
+            Some('+') => token::Token::Plus,
+            Some('-') => token::Token::Minus,
+            Some('/') => token::Token::Slash,
+            Some('*') => token::Token::Asterisk,
+            Some('<') => token::Token::Lt,
+            Some('>') => token::Token::Gt,
             Some(';') => token::Token::Semicolon,
             Some('(') => token::Token::LParen,
             Some(')') => token::Token::RParen,
             Some(',') => token::Token::Comma,
-            Some('+') => token::Token::Plus,
             Some('{') => token::Token::LBrace,
             Some('}') => token::Token::RBrace,
 
@@ -77,6 +80,25 @@ impl<'a> Lexer<'a> {
             Some(c) if c.is_ascii_digit() => {
                 let literal = self.read_number();
                 return token::Token::Int(literal);
+            }
+            Some('=') => {
+                if self.peek_char() == Some('=') {
+                    self.read_char();
+                    self.read_char();
+                    return token::Token::Eq;
+                }
+                self.read_char();
+                return token::Token::Assign;
+            }
+            Some('!') => {
+                if self.peek_char() == Some('=') {
+                    self.read_char();
+                    self.read_char();
+                    return token::Token::NotEq;
+                } else {
+                    self.read_char();
+                    return token::Token::Bang;
+                }
             }
 
             // Unknown single character
@@ -113,6 +135,11 @@ impl<'a> Lexer<'a> {
             .parse()
             .expect("Invalid number encountered")
     }
+
+    /// Peeks the next character from the current position of the lexer.
+    fn peek_char(&self) -> Option<char> {
+        self.input[self.read_position..].chars().next()
+    }
 }
 
 #[cfg(test)]
@@ -120,7 +147,7 @@ mod tests {
     use super::*;
 
     fn verify_expected_next_token(expected: &[token::Token], lexer: &mut Lexer) {
-        for (i, expected_tk) in expected.into_iter().enumerate() {
+        for (i, expected_tk) in expected.iter().enumerate() {
             let token: token::Token = lexer.next_token();
             assert_eq!(
                 token,
@@ -154,15 +181,27 @@ mod tests {
     }
 
     #[test]
-    fn test_multichar_next_token() {
-        let input = "let five = 5;\
-                     let ten = 10;\
+    fn mixed_chars() {
+        let input = "let five = 5; \
+                     let ten = 10; \
                      \
-                     let add = fn(x, y) {\
-                         x + y;\
-                     };\
-                    \
-                    let result = add(five, ten);";
+                     let add = fn(x, y) { \
+                         x + y; \
+                     }; \
+            \
+            let result = add(five, ten); \
+            !-/*5; \
+            5 < 10 > 5;
+            \
+            if (5 < 10) { \
+                return true; \
+            } else { \
+                return false; \
+            } \
+            \
+            10 == 10; \
+            10 != 9;";
+
         let mut l = Lexer::new(input);
         let expected: Vec<token::Token> = vec![
             token::Token::Let,
@@ -200,6 +239,43 @@ mod tests {
             token::Token::Comma,
             token::Token::Ident("ten".to_string()),
             token::Token::RParen,
+            token::Token::Semicolon,
+            token::Token::Bang,
+            token::Token::Minus,
+            token::Token::Slash,
+            token::Token::Asterisk,
+            token::Token::Int(5),
+            token::Token::Semicolon,
+            token::Token::Int(5),
+            token::Token::Lt,
+            token::Token::Int(10),
+            token::Token::Gt,
+            token::Token::Int(5),
+            token::Token::Semicolon,
+            token::Token::If,
+            token::Token::LParen,
+            token::Token::Int(5),
+            token::Token::Lt,
+            token::Token::Int(10),
+            token::Token::RParen,
+            token::Token::LBrace,
+            token::Token::Return,
+            token::Token::True,
+            token::Token::Semicolon,
+            token::Token::RBrace,
+            token::Token::Else,
+            token::Token::LBrace,
+            token::Token::Return,
+            token::Token::False,
+            token::Token::Semicolon,
+            token::Token::RBrace,
+            token::Token::Int(10),
+            token::Token::Eq,
+            token::Token::Int(10),
+            token::Token::Semicolon,
+            token::Token::Int(10),
+            token::Token::NotEq,
+            token::Token::Int(9),
             token::Token::Semicolon,
             token::Token::Eof,
         ];
