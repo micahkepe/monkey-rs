@@ -1,3 +1,6 @@
+//! A simple character‑based lexer that turns source text into a stream
+//! of `Token`s, handling identifiers, numbers, operators, and whitespace.
+
 use crate::token;
 
 /// The lexer to convert source code into tokens representing the source code.
@@ -14,6 +17,10 @@ struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    /// Create a new lexer over the given input string.
+    ///
+    /// This will initialize the internal state and read the first character,
+    /// so the lexer is ready to produce tokens via `next_token()`.
     fn new(input: &'a str) -> Self {
         let mut lexer = Self {
             input,
