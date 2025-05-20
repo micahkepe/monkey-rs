@@ -5,7 +5,7 @@ use crate::token;
 
 /// The lexer to convert source code into tokens representing the source code.
 #[derive(Debug)]
-struct Lexer<'a> {
+pub struct Lexer<'a> {
     /// the input source code to tokenize
     input: &'a str,
     /// current position in input (points to current char)
@@ -21,7 +21,7 @@ impl<'a> Lexer<'a> {
     ///
     /// This will initialize the internal state and read the first character,
     /// so the lexer is ready to produce tokens via `next_token()`.
-    fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str) -> Self {
         let mut lexer = Self {
             input,
             position: 0,
@@ -58,7 +58,7 @@ impl<'a> Lexer<'a> {
 
     /// Determine and return the next token in the input from the current
     /// character position.
-    fn next_token(&mut self) -> token::Token {
+    pub fn next_token(&mut self) -> token::Token {
         // consume character(s) until no whitespace
         while matches!(self.ch, Some(c) if c.is_whitespace()) {
             self.read_char();
