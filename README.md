@@ -19,3 +19,4 @@ language from Thorsten Ball's
 - [ ] Evaluation
 - [ ] Extending the Interpreter
 - [ ] Macro System ("The Lost Chapter")
+- [ ] Documentation w/ [`mdbook`](https://github.com/rust-lang/mdBook)

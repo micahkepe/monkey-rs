@@ -1,0 +1,5 @@
+[book]
+authors = ["micahkepe"]
+language = "en"
+src = "src"
+title = "monkey-rs Documentation"
