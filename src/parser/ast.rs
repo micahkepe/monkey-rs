@@ -25,21 +25,35 @@ impl fmt::Display for Node {
     }
 }
 
+/// A statement doesn't produce a value, but rather performs an action or
+/// defines a variable.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Statement {
+    /// A let statement, which defines a variable with an identifier and an
+    /// expression.
     Let(String, Expression),
+    /// A return statement, which returns an expression.
+    Return(Expression),
+    /// An expression statement, which is an expression that doesn't return a
+    /// value.
+    Expr(Expression),
 }
 
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Statement::Let(id, expr) => write!(f, "let {} = {};", id, expr),
+            // TODO: handle expr and use it in formatted display
+            Statement::Return(_) => write!(f, "return"),
+            Statement::Expr(expr) => write!(f, "{}", expr),
         }
     }
 }
 
+/// An expression is a value or a computation that produces a value.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Expression {
+    /// An identifier expression, which represents a variable.
     Identifier(String),
 }
 

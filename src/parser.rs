@@ -72,6 +72,7 @@ impl<'a> Parser<'a> {
     fn parse_statement(&mut self) -> Result<ast::Statement, error::ParserError> {
         match self.current {
             Some(token::Token::Let) => self.parse_let_statement(),
+            Some(token::Token::Return) => self.parse_return_statement(),
             _ => Err(error::ParserError::new("Unexpected token".to_string())),
         }
     }
@@ -116,6 +117,31 @@ impl<'a> Parser<'a> {
         ))
     }
 
+    /// Parses a return statement, returning an AST node if successful, else a
+    /// `ParserError`.
+    fn parse_return_statement(&mut self) -> Result<ast::Statement, error::ParserError> {
+        if let Some(token) = &self.current {
+            if token != &token::Token::Return {
+                return Err(error::ParserError::new(format!(
+                    "Expected 'return' token, got {:?}",
+                    token
+                )));
+            }
+        }
+
+        // Consume the return token
+        self.next_token();
+
+        // TODO: skipping the expressions until we encounter a semicolon
+        while !matches!(self.current, Some(token::Token::Semicolon)) {
+            self.next_token();
+        }
+
+        let expr = ast::Expression::Identifier("return_value".to_string()); // Placeholder expression
+
+        Ok(ast::Statement::Return(expr))
+    }
+
     /// Parse the input token into a program AST (a series of statements).
     fn parse_program(&mut self) -> Result<Vec<ast::Statement>, error::ParserError> {
         let mut statements: Vec<ast::Statement> = Vec::new();
@@ -155,6 +181,45 @@ impl<'a> Parser<'a> {
 mod tests {
     use super::*;
 
+    /// Helper function to compare `Let` statements by their variants, ignoring
+    /// expressions for now.
+    fn assert_let_statement(expected: &ast::Statement, actual: &ast::Statement, index: usize) {
+        match (expected, actual) {
+            (ast::Statement::Let(expected_name, _), ast::Statement::Let(actual_name, _)) => {
+                assert_eq!(
+                    expected_name, actual_name,
+                    "statement {} does not match the name, expected={}, got={}",
+                    index, expected_name, actual_name
+                );
+            }
+            _ => panic!(
+                "statement {} is not a 'Let' statement, expected={:?}, got={:?}",
+                index, expected, actual
+            ),
+        }
+    }
+
+    /// Helper function to compare `Return` statements by their variants,
+    /// ignoring expressions for now.
+    fn assert_return_statement(expected: &ast::Statement, actual: &ast::Statement, index: usize) {
+        match (expected, actual) {
+            (ast::Statement::Return(_), ast::Statement::Return(_)) => {
+                assert_eq!(
+                    expected.to_string(),
+                    actual.to_string(),
+                    "statement {} does not match the expression, expected_expr={}, got={}",
+                    index,
+                    expected,
+                    actual
+                );
+            }
+            _ => panic!(
+                "statement {} is not a 'Return' statement, expected={:?}, got={:?}",
+                index, expected, actual
+            ),
+        }
+    }
+
     #[test]
     fn test_let_statement() {
         let input = "let x = 5; \
@@ -188,15 +253,8 @@ mod tests {
             ),
         ];
 
-        // TODO: compare expression as well once implemented
         for (i, expected_stmt) in expected.iter().enumerate() {
-            let ast::Statement::Let(expected_name, _) = &expected_stmt;
-            let ast::Statement::Let(actual_name, _) = &program[i];
-            assert_eq!(
-                expected_name, actual_name,
-                "statement {} does not match the name, expected={:?}, got={:?}",
-                i, expected_name, actual_name
-            );
+            assert_let_statement(expected_stmt, &program[i], i);
         }
     }
 
@@ -207,5 +265,32 @@ mod tests {
         let mut p = Parser::new(&mut l);
         let program = p.parse_program();
         assert!(&program.is_err());
+    }
+
+    #[test]
+    fn test_return_statements() {
+        let input = "return 5; \
+                     return 10; \
+                     return 993322;";
+        let mut l = lexer::Lexer::new(input);
+        let mut p = Parser::new(&mut l);
+        let program = p.parse_program();
+        assert!(program.is_ok());
+        let program = program.unwrap();
+        if program.len() != 3 {
+            panic!(
+                "program does not contain 3 statements. got={}",
+                program.len()
+            );
+        }
+        let expected = [
+            ast::Statement::Return(ast::Expression::Identifier("5".to_string())),
+            ast::Statement::Return(ast::Expression::Identifier("10".to_string())),
+            ast::Statement::Return(ast::Expression::Identifier("993322".to_string())),
+        ];
+
+        for (i, expected_stmt) in expected.iter().enumerate() {
+            assert_return_statement(expected_stmt, &program[i], i);
+        }
     }
 }
