@@ -1,7 +1,9 @@
 //! # REPL
 //!
 //! Defines a Read-Eval-Print-Loop (REPL) for the Monkey programming language.
-use std::io::{stdin, stdout, Write};
+use rustyline::error::ReadlineError;
+use rustyline::{DefaultEditor, Result};
+use std::fs;
 
 use crate::lexer;
 use crate::token;
@@ -10,7 +12,20 @@ use crate::token;
 const PROMPT: &str = ">> ";
 
 /// Runs a simple REPL for the user to run Monkey code.
-pub fn start() {
+pub fn start() -> Result<()> {
+    let mut rl = DefaultEditor::new()?;
+    let history_path = "/tmp/.monkey-history.txt";
+
+    match rl.load_history(history_path) {
+        Ok(_) => {}
+        Err(ReadlineError::Io(_)) => {
+            fs::File::create(history_path)?;
+        }
+        Err(err) => {
+            eprintln!("monkey-rs: Error loading history: {}", err);
+        }
+    };
+
     println!(
         r"
        __  ___          __
@@ -24,24 +39,37 @@ pub fn start() {
     println!("Feel free to type in commands\n");
 
     loop {
-        print!("{}", PROMPT);
-        let _ = stdout().flush();
+        let readline = rl.readline(">> ");
 
-        let mut input = String::new();
-        let _ = stdin().read_line(&mut input);
+        match readline {
+            Ok(input) => {
+                if input.is_empty() {
+                    continue;
+                }
 
-        let mut l = lexer::Lexer::new(&input);
+                rl.add_history_entry(&input)?;
 
-        if input.is_empty() {
-            continue;
-        }
+                let mut l = lexer::Lexer::new(&input);
 
-        loop {
-            let tok = l.next_token();
-            if tok == token::Token::Eof {
+                loop {
+                    let tok = l.next_token();
+                    if tok == token::Token::Eof {
+                        break;
+                    }
+                    println!("{:?}", tok)
+                }
+            }
+            Err(ReadlineError::Eof | ReadlineError::Interrupted) => {
+                println!("Exiting...");
+                rl.save_history(history_path)?;
                 break;
             }
-            println!("{:?}", tok)
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break;
+            }
         }
     }
+
+    Ok(())
 }
