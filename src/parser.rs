@@ -204,6 +204,16 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Attempts to parse the current token as an integer literal expression.
+    fn parse_integer_literal(&self) -> Result<ast::Expression, error::ParserError> {
+        match &self.current_token {
+            Some(token::Token::Int(int)) => {
+                Ok(ast::Expression::LitExpr(ast::Literal::Integer(*int)))
+            }
+            _ => Err(error::ParserError::new("Expected integer".to_string())),
+        }
+    }
+
     /// Parses the current expression based on precedence rules.
     fn parse_expression(
         &self,
@@ -211,6 +221,7 @@ impl<'a> Parser<'a> {
     ) -> Result<ast::Expression, error::ParserError> {
         match self.current_token {
             Some(token::Token::Ident(_)) => self.parse_identifier(),
+            Some(token::Token::Int(_)) => self.parse_integer_literal(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
@@ -362,6 +373,19 @@ mod tests {
         assert_eq!(program.len(), 1);
         let expected = vec![ast::Statement::Expr(ast::Expression::Identifier(
             "foobar".to_string(),
+        ))];
+        assert_eq!(expected, program);
+    }
+
+    #[test]
+    fn test_integer_literal_expression() {
+        let input = "5;";
+        let mut l = lexer::Lexer::new(input);
+        let mut p = Parser::new(&mut l);
+        let program = p.parse_program().unwrap();
+        assert_eq!(program.len(), 1);
+        let expected = vec![ast::Statement::Expr(ast::Expression::LitExpr(
+            ast::Literal::Integer(5),
         ))];
         assert_eq!(expected, program);
     }

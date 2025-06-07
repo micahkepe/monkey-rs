@@ -68,6 +68,8 @@ impl fmt::Display for Statement {
 pub enum Expression {
     /// An identifier expression, which represents a variable.
     Identifier(String),
+    /// A literal expression, e.g. an integer, boolean, string, array, or hash.
+    LitExpr(Literal),
     /// A prefix parse function
     PrefixParseFn,
     /// An infix parse function, which takes another expression (the "left
@@ -80,7 +82,24 @@ impl fmt::Display for Expression {
         match self {
             Expression::Identifier(id) => write!(f, "{}", id),
             Expression::PrefixParseFn => todo!(),
-            Expression::InfixParseFn(expression) => todo!(),
+            Expression::InfixParseFn(_expression) => todo!(),
+            Expression::LitExpr(literal) => write!(f, "{}", literal),
+        }
+    }
+}
+
+/// A type of literal expression.
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum Literal {
+    /// An integer literal, e.g. `5;`
+    Integer(i32),
+    // Add more literal variants here
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::Integer(int) => write!(f, "{}", int),
         }
     }
 }
