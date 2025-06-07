@@ -5,15 +5,16 @@
 use crate::lexer;
 use crate::token;
 
-pub mod ast;
+pub(crate) mod ast;
 pub mod error;
+pub mod precedence;
 
 /// Parses the token stream into an AST.
-pub struct Parser<'a> {
+struct Parser<'a> {
     /// Lexer instance to read tokens from.
     lexer: &'a mut lexer::Lexer<'a>,
     /// The current token.
-    current: Option<token::Token>,
+    current_token: Option<token::Token>,
     /// The next token.
     peek: Option<token::Token>,
     /// Accrued parsing errors
@@ -25,7 +26,7 @@ impl<'a> Parser<'a> {
     pub fn new(lexer: &'a mut lexer::Lexer<'a>) -> Self {
         let mut parser = Self {
             lexer,
-            current: None,
+            current_token: None,
             peek: None,
             errors: Vec::new(),
         };
@@ -39,13 +40,13 @@ impl<'a> Parser<'a> {
     /// Moves the current token to the `current` field and puts the next token
     /// into the `peek` field.
     fn next_token(&mut self) {
-        self.current = self.peek.take();
+        self.current_token = self.peek.take();
         self.peek = Some(self.lexer.next_token());
     }
 
     /// Determine whether the current token matches the specific token variant.
     fn current_token_is(&self, t: &token::Token) -> bool {
-        matches!(self.current.as_ref(), Some(current) if current == t)
+        matches!(self.current_token.as_ref(), Some(current) if current == t)
     }
 
     /// Determine whether the peek token matches the specific token variant.
@@ -70,17 +71,18 @@ impl<'a> Parser<'a> {
     /// Parses a statement, returning an AST node if successful, else a
     /// `ParserError`.
     fn parse_statement(&mut self) -> Result<ast::Statement, error::ParserError> {
-        match self.current {
+        match self.current_token {
             Some(token::Token::Let) => self.parse_let_statement(),
             Some(token::Token::Return) => self.parse_return_statement(),
-            _ => Err(error::ParserError::new("Unexpected token".to_string())),
+            // Otherwise, default to parsing an expression statement.
+            _ => self.parse_expression_statement(),
         }
     }
 
     /// Parses a let statement, returning an AST node if successful, else a
     /// `ParserError`.
     fn parse_let_statement(&mut self) -> Result<ast::Statement, error::ParserError> {
-        if let Some(token) = &self.current {
+        if let Some(token) = &self.current_token {
             if token != &token::Token::Let {
                 return Err(error::ParserError::new(format!(
                     "Expected 'let' token, got {:?}",
@@ -106,21 +108,21 @@ impl<'a> Parser<'a> {
 
         // TODO: skipping expressions until encounter a semicolon for now
         // need to handle expressions
-        while !matches!(self.current, Some(token::Token::Semicolon)) {
+        while !matches!(self.current_token, Some(token::Token::Semicolon)) {
             self.next_token();
         }
 
         // TODO: replace placeholder expression
         Ok(ast::Statement::Let(
             ident,
-            ast::Expression::Identifier("5".to_string()),
+            ast::Expression::Identifier("let_expr".to_string()),
         ))
     }
 
     /// Parses a return statement, returning an AST node if successful, else a
     /// `ParserError`.
     fn parse_return_statement(&mut self) -> Result<ast::Statement, error::ParserError> {
-        if let Some(token) = &self.current {
+        if let Some(token) = &self.current_token {
             if token != &token::Token::Return {
                 return Err(error::ParserError::new(format!(
                     "Expected 'return' token, got {:?}",
@@ -133,20 +135,37 @@ impl<'a> Parser<'a> {
         self.next_token();
 
         // TODO: skipping the expressions until we encounter a semicolon
-        while !matches!(self.current, Some(token::Token::Semicolon)) {
+        while !matches!(self.current_token, Some(token::Token::Semicolon)) {
             self.next_token();
         }
 
-        let expr = ast::Expression::Identifier("return_value".to_string()); // Placeholder expression
+        // Placeholder expression
+        let expr = ast::Expression::Identifier("return_value".to_string());
 
         Ok(ast::Statement::Return(expr))
+    }
+
+    /// Parse a given expression statement.
+    fn parse_expression_statement(&mut self) -> Result<ast::Statement, error::ParserError> {
+        // Pass an initial lowest precedence since we haven't parse the rest of
+        // the expression.
+        let expr = self.parse_expression(precedence::Precdence::Lowest)?;
+
+        // Check for optional semicolon, advancing past the semicolon
+        // The semicolon is optional to allow expression statements such as
+        // `5 + 5` easier to type in the REPL
+        if self.peek_token_is(&token::Token::Semicolon) {
+            self.next_token();
+        }
+
+        Ok(ast::Statement::Expr(expr))
     }
 
     /// Parse the input token into a program AST (a series of statements).
     fn parse_program(&mut self) -> Result<Vec<ast::Statement>, error::ParserError> {
         let mut statements: Vec<ast::Statement> = Vec::new();
 
-        while let Some(current) = self.current.as_ref() {
+        while let Some(current) = self.current_token.as_ref() {
             // reached end of file
             if *current == token::Token::Eof {
                 break;
@@ -175,6 +194,29 @@ impl<'a> Parser<'a> {
 
         Ok(statements)
     }
+
+    /// Parses the current token as an identifier expression, else returns a
+    /// parse error.
+    fn parse_identifier(&self) -> Result<ast::Expression, error::ParserError> {
+        match &self.current_token {
+            Some(token::Token::Ident(ident)) => Ok(ast::Expression::Identifier(ident.to_string())),
+            _ => Err(error::ParserError::new("Expected identifier".to_string())),
+        }
+    }
+
+    /// Parses the current expression based on precedence rules.
+    fn parse_expression(
+        &self,
+        precedence: precedence::Precdence,
+    ) -> Result<ast::Expression, error::ParserError> {
+        match self.current_token {
+            Some(token::Token::Ident(_)) => self.parse_identifier(),
+            _ => Err(error::ParserError::new(format!(
+                "No prefix parse function for {:?}",
+                self.current_token
+            ))),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -183,6 +225,7 @@ mod tests {
 
     /// Helper function to compare `Let` statements by their variants, ignoring
     /// expressions for now.
+    /// TODO: Handle expressions in the future.
     fn assert_let_statement(expected: &ast::Statement, actual: &ast::Statement, index: usize) {
         match (expected, actual) {
             (ast::Statement::Let(expected_name, _), ast::Statement::Let(actual_name, _)) => {
@@ -201,6 +244,7 @@ mod tests {
 
     /// Helper function to compare `Return` statements by their variants,
     /// ignoring expressions for now.
+    /// TODO: Handle expressions in the future.
     fn assert_return_statement(expected: &ast::Statement, actual: &ast::Statement, index: usize) {
         match (expected, actual) {
             (ast::Statement::Return(_), ast::Statement::Return(_)) => {
@@ -292,5 +336,33 @@ mod tests {
         for (i, expected_stmt) in expected.iter().enumerate() {
             assert_return_statement(expected_stmt, &program[i], i);
         }
+    }
+
+    #[test]
+    fn test_simple_program_display() {
+        let input = "let myVar = anotherVar;";
+        let mut l = lexer::Lexer::new(input);
+        let mut p = Parser::new(&mut l);
+        let program = p.parse_program();
+        assert!(program.is_ok());
+        let program = ast::Node::Program(program.unwrap());
+        let expected = ast::Node::Program(vec![ast::Statement::Let(
+            "myVar".to_string(),
+            ast::Expression::Identifier("anotherVar".to_string()),
+        )]);
+        assert_eq!(expected, program);
+    }
+
+    #[test]
+    fn test_identifier_expression() {
+        let input = "foobar;";
+        let mut l = lexer::Lexer::new(input);
+        let mut p = Parser::new(&mut l);
+        let program = p.parse_program().unwrap();
+        assert_eq!(program.len(), 1);
+        let expected = vec![ast::Statement::Expr(ast::Expression::Identifier(
+            "foobar".to_string(),
+        ))];
+        assert_eq!(expected, program);
     }
 }

@@ -5,7 +5,7 @@
 use std::fmt;
 
 /// Defines the nodes that comprise the constructed AST from Monkey source code.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Node {
     /// A program node, which contains a series of statements.
     Program(Vec<Statement>),
@@ -18,7 +18,7 @@ pub enum Node {
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Node::Program(stmts) => write!(f, "{}", format_statements(stmts)),
+            Node::Program(stmts) => write!(f, "{}", display_program(stmts)),
             Node::Stmt(stmt) => write!(f, "{}", stmt),
             Node::Expr(expr) => write!(f, "{}", expr),
         }
@@ -27,7 +27,21 @@ impl fmt::Display for Node {
 
 /// A statement doesn't produce a value, but rather performs an action or
 /// defines a variable.
-#[derive(Clone, PartialEq, Debug)]
+///
+/// In Monkey, there are only three types of statements:
+/// 1.  `let` statements, which define a variable with an identifier and an
+///     expression.
+/// 2.  `return` statements, which return an expression.
+/// 3.  `expression` statements, which are expressions that don't return a value.
+///
+/// # Examples
+///
+/// ```monkey
+/// let x = 5;  // let statement
+/// return x;   // return statement
+/// x + 1;      // expression statement
+/// ```
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Statement {
     /// A let statement, which defines a variable with an identifier and an
     /// expression.
@@ -43,30 +57,36 @@ impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Statement::Let(id, expr) => write!(f, "let {} = {};", id, expr),
-            // TODO: handle expr and use it in formatted display
-            Statement::Return(_) => write!(f, "return"),
+            Statement::Return(expr) => write!(f, "return {};", expr),
             Statement::Expr(expr) => write!(f, "{}", expr),
         }
     }
 }
 
 /// An expression is a value or a computation that produces a value.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Expression {
     /// An identifier expression, which represents a variable.
     Identifier(String),
+    /// A prefix parse function
+    PrefixParseFn,
+    /// An infix parse function, which takes another expression (the "left
+    /// side") as an argument
+    InfixParseFn(Box<Expression>),
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expression::Identifier(id) => write!(f, "{}", id),
+            Expression::PrefixParseFn => todo!(),
+            Expression::InfixParseFn(expression) => todo!(),
         }
     }
 }
 
-/// Format a series of statements into a string representation.
-fn format_statements(stmts: &[Statement]) -> String {
+/// Format program statements into a string representation.
+fn display_program(stmts: &[Statement]) -> String {
     stmts
         .iter()
         .map(|stmt| stmt.to_string())
