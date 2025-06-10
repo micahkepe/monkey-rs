@@ -1,6 +1,9 @@
 //! # Parser
 //!
 //! Parses the input token stream into an AST and performs syntactic analysis.
+//! The parsing is accomplished via "top down operator precedence," also known
+//! as Pratt Parsing based off Vaughan Pratt's 1973 paper ["Top Down Operator
+//! Precdence"](https://dl.acm.org/doi/10.1145/512927.512931).
 
 use crate::lexer;
 use crate::token;
@@ -69,7 +72,9 @@ impl<'a> Parser<'a> {
     }
 
     /// Returns the precedence of the next token `self.peek`. If the next token
-    /// does not exist, then defaults to `Precdence::Lowest`.
+    /// does not exist, then defaults to `Precdence::Lowest`. The returned
+    /// precedence value corresponds to the left-binding power of the next
+    /// token/operator in the token stream.
     fn peek_precedence(&self) -> precedence::Precdence {
         match &self.peek_token {
             Some(token) => precedence::token_precedence(token),
@@ -229,6 +234,15 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Attempts to parse the current token as a Boolean literal expression.
+    fn parse_boolean(&self) -> Result<ast::Expression, error::ParserError> {
+        match &self.current_token {
+            Some(token::Token::True) => Ok(ast::Expression::Lit(ast::Literal::Boolean(true))),
+            Some(token::Token::False) => Ok(ast::Expression::Lit(ast::Literal::Boolean(false))),
+            _ => Err(error::ParserError::new("Expected boolean".to_string())),
+        }
+    }
+
     /// Attempts to parse the current token as a prefix expression.
     fn parse_prefix_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
         let prefix = self.current_token.clone();
@@ -265,12 +279,15 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    /// Parses the current expression based on precedence rules.
+    /// Parses the current expression based on precedence rules. The passed
+    /// value for `precedence` signifies the current right-binding power of the
+    /// invocation.
     fn parse_expression(
         &mut self,
         precedence: precedence::Precdence,
     ) -> Result<ast::Expression, error::ParserError> {
         let mut left_expr = match self.current_token {
+            Some(token::Token::True) | Some(token::Token::False) => self.parse_boolean(),
             Some(token::Token::Ident(_)) => self.parse_identifier(),
             Some(token::Token::Int(_)) => self.parse_integer_literal(),
             Some(token::Token::Bang) | Some(token::Token::Minus) => self.parse_prefix_expression(),
@@ -280,7 +297,14 @@ impl<'a> Parser<'a> {
             ))),
         };
 
-        // Try to parse the infix expression, if it exists.
+        // Try to parse the infix expression, if it exists. Checks if the
+        // left-binding power of the next operator/token is higher than the
+        // current right-binding power.
+        //
+        // NOTE: The check for the peek token being a semicolon is not strictly
+        // necessary since the `peek_precedence` method will default to
+        // returning `Precdence::Lowest`. However, this explicitly sets the
+        // semantic behavior of semicolons and expression-ending delimiters.
         while !self.peek_token_is(&token::Token::Semicolon) && precedence < self.peek_precedence() {
             match self.peek_token {
                 Some(_) => {
@@ -301,7 +325,7 @@ mod tests {
     use super::*;
 
     /// Checks the output of parsing an input program string against the
-    /// expected display output for the parsed program AST.
+    /// expected serialized display output for the parsed program AST.
     fn check_parse_test_cases(cases: &[(&str, &str)]) {
         for (input, expected) in cases {
             let mut l = lexer::Lexer::new(input);
@@ -368,7 +392,7 @@ mod tests {
         let mut l = lexer::Lexer::new(input);
         let mut p = Parser::new(&mut l);
         let program = p.parse_program();
-        // assert!(program.is_ok());
+        assert!(program.is_ok());
         let program = program.unwrap();
         if program.len() != 3 {
             panic!(
@@ -426,9 +450,20 @@ mod tests {
     }
 
     #[test]
+    fn test_boolean_expressions() {
+        let bool_tests = [("true", "true"), ("false", "false")];
+        check_parse_test_cases(&bool_tests);
+    }
+
+    #[test]
     fn test_parsing_prefix_expressions() {
         // test_case[i] = (input str, expected formatted parsed representation)
-        let prefix_cases = [("!5;", "(!5)"), ("-15;", "(-15)")];
+        let prefix_cases = [
+            ("!5;", "(!5)"),
+            ("-15;", "(-15)"),
+            ("!true", "(!true)"),
+            ("!false", "(!false)"),
+        ];
         check_parse_test_cases(&prefix_cases);
     }
 
@@ -443,6 +478,9 @@ mod tests {
             ("5 < 5;", "(5 < 5)"),
             ("5 == 5;", "(5 == 5)"),
             ("5 != 5;", "(5 != 5)"),
+            ("true == true", "(true == true)"),
+            ("true != false", "(true != false)"),
+            ("false == false", "(false == false)"),
         ];
         check_parse_test_cases(&infix_tests);
     }
@@ -465,6 +503,10 @@ mod tests {
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
+            ("true", "true"),
+            ("false", "false"),
+            ("3 > 5 == false", "((3 > 5) == false)"),
+            ("3 < 5 == true", "((3 < 5) == true)"),
         ];
         check_parse_test_cases(&precedence_tests);
     }
