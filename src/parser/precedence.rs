@@ -4,7 +4,7 @@
 use crate::token;
 
 /// Defines the precedences of the Monkey programming language.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, PartialOrd, Eq)]
 pub enum Precdence {
     /// The lowest value precedence
     Lowest,
@@ -27,6 +27,12 @@ pub enum Precdence {
 /// Returns the precedence of a given `Token` value.
 pub fn token_precedence(token: &token::Token) -> Precdence {
     match token {
+        token::Token::Eq | token::Token::NotEq => Precdence::Equals,
+        token::Token::Lt | token::Token::Gt => Precdence::LessGreater,
+        token::Token::Plus | token::Token::Minus => Precdence::Sum,
+        token::Token::Slash | token::Token::Asterisk => Precdence::Product,
+        token::Token::LParen => Precdence::Call,
+        token::Token::LBrace => Precdence::Index,
         _ => Precdence::Lowest,
     }
 }

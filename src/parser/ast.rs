@@ -4,6 +4,8 @@
 
 use std::fmt;
 
+use crate::token;
+
 /// Defines the nodes that comprise the constructed AST from Monkey source code.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Node {
@@ -69,21 +71,21 @@ pub enum Expression {
     /// An identifier expression, which represents a variable.
     Identifier(String),
     /// A literal expression, e.g. an integer, boolean, string, array, or hash.
-    LitExpr(Literal),
+    Lit(Literal),
     /// A prefix parse function
-    PrefixParseFn,
+    Prefix(token::Token, Box<Expression>),
     /// An infix parse function, which takes another expression (the "left
     /// side") as an argument
-    InfixParseFn(Box<Expression>),
+    Infix(token::Token, Box<Expression>, Box<Expression>),
 }
 
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expression::Identifier(id) => write!(f, "{}", id),
-            Expression::PrefixParseFn => todo!(),
-            Expression::InfixParseFn(_expression) => todo!(),
-            Expression::LitExpr(literal) => write!(f, "{}", literal),
+            Expression::Prefix(op, right) => write!(f, "({}{})", op, right),
+            Expression::Infix(op, left, right) => write!(f, "({} {} {})", left, op, right),
+            Expression::Lit(literal) => write!(f, "{}", literal),
         }
     }
 }
@@ -93,6 +95,8 @@ impl fmt::Display for Expression {
 pub enum Literal {
     /// An integer literal, e.g. `5;`
     Integer(i32),
+    /// A boolean literal
+    Boolean(bool),
     // Add more literal variants here
 }
 
@@ -100,6 +104,7 @@ impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Literal::Integer(int) => write!(f, "{}", int),
+            Literal::Boolean(bool) => write!(f, "{}", bool),
         }
     }
 }
@@ -110,5 +115,5 @@ fn display_program(stmts: &[Statement]) -> String {
         .iter()
         .map(|stmt| stmt.to_string())
         .collect::<Vec<_>>()
-        .join("\n")
+        .join("")
 }

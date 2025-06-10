@@ -16,7 +16,7 @@ struct Parser<'a> {
     /// The current token.
     current_token: Option<token::Token>,
     /// The next token.
-    peek: Option<token::Token>,
+    peek_token: Option<token::Token>,
     /// Accrued parsing errors
     errors: Vec<error::ParserError>,
 }
@@ -27,7 +27,7 @@ impl<'a> Parser<'a> {
         let mut parser = Self {
             lexer,
             current_token: None,
-            peek: None,
+            peek_token: None,
             errors: Vec::new(),
         };
 
@@ -40,8 +40,8 @@ impl<'a> Parser<'a> {
     /// Moves the current token to the `current` field and puts the next token
     /// into the `peek` field.
     fn next_token(&mut self) {
-        self.current_token = self.peek.take();
-        self.peek = Some(self.lexer.next_token());
+        self.current_token = self.peek_token.take();
+        self.peek_token = Some(self.lexer.next_token());
     }
 
     /// Determine whether the current token matches the specific token variant.
@@ -51,7 +51,7 @@ impl<'a> Parser<'a> {
 
     /// Determine whether the peek token matches the specific token variant.
     fn peek_token_is(&self, t: &token::Token) -> bool {
-        matches!(self.peek.as_ref(), Some(peek) if peek == t)
+        matches!(self.peek_token.as_ref(), Some(peek) if peek == t)
     }
 
     /// Assertion function to check if the type of the next token matches its
@@ -63,8 +63,26 @@ impl<'a> Parser<'a> {
         } else {
             Err(error::ParserError::new(format!(
                 "Expected next token to be {:?}, received {:?}",
-                t, self.peek
+                t, self.peek_token
             )))
+        }
+    }
+
+    /// Returns the precedence of the next token `self.peek`. If the next token
+    /// does not exist, then defaults to `Precdence::Lowest`.
+    fn peek_precedence(&self) -> precedence::Precdence {
+        match &self.peek_token {
+            Some(token) => precedence::token_precedence(token),
+            None => precedence::Precdence::Lowest,
+        }
+    }
+
+    /// Returns the precedence of the current token `self.current_token`. If the
+    /// current token does not exist, then defaults to `Precdence::Lowest`.
+    fn curr_precedence(&self) -> precedence::Precdence {
+        match &self.current_token {
+            Some(token) => precedence::token_precedence(token),
+            None => precedence::Precdence::Lowest,
         }
     }
 
@@ -91,7 +109,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        let ident = match &self.peek {
+        let ident = match &self.peek_token {
             Some(token::Token::Ident(ident)) => ident.clone(),
             _ => {
                 return Err(error::ParserError::new(
@@ -105,18 +123,17 @@ impl<'a> Parser<'a> {
 
         // Check that the next token is an assignment
         self.expect_peek_token(&token::Token::Assign)?;
+        self.next_token();
 
-        // TODO: skipping expressions until encounter a semicolon for now
-        // need to handle expressions
-        while !matches!(self.current_token, Some(token::Token::Semicolon)) {
+        // Parse expression
+        let expr = self.parse_expression(precedence::Precdence::Lowest)?;
+
+        // Advance parser past the optional semicolon, if it exists
+        if self.peek_token_is(&token::Token::Semicolon) {
             self.next_token();
         }
 
-        // TODO: replace placeholder expression
-        Ok(ast::Statement::Let(
-            ident,
-            ast::Expression::Identifier("let_expr".to_string()),
-        ))
+        Ok(ast::Statement::Let(ident, expr))
     }
 
     /// Parses a return statement, returning an AST node if successful, else a
@@ -131,16 +148,16 @@ impl<'a> Parser<'a> {
             }
         }
 
-        // Consume the return token
+        // Consume the `return`
         self.next_token();
 
-        // TODO: skipping the expressions until we encounter a semicolon
-        while !matches!(self.current_token, Some(token::Token::Semicolon)) {
+        // Parse expression
+        let expr = self.parse_expression(precedence::Precdence::Lowest)?;
+
+        // Place parser after the semicolon, if it exists
+        if self.peek_token_is(&token::Token::Semicolon) {
             self.next_token();
         }
-
-        // Placeholder expression
-        let expr = ast::Expression::Identifier("return_value".to_string());
 
         Ok(ast::Statement::Return(expr))
     }
@@ -207,26 +224,75 @@ impl<'a> Parser<'a> {
     /// Attempts to parse the current token as an integer literal expression.
     fn parse_integer_literal(&self) -> Result<ast::Expression, error::ParserError> {
         match &self.current_token {
-            Some(token::Token::Int(int)) => {
-                Ok(ast::Expression::LitExpr(ast::Literal::Integer(*int)))
-            }
+            Some(token::Token::Int(int)) => Ok(ast::Expression::Lit(ast::Literal::Integer(*int))),
             _ => Err(error::ParserError::new("Expected integer".to_string())),
         }
     }
 
+    /// Attempts to parse the current token as a prefix expression.
+    fn parse_prefix_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
+        let prefix = self.current_token.clone();
+
+        // advance the parser
+        self.next_token();
+
+        let expr = self.parse_expression(precedence::Precdence::Prefix)?;
+
+        Ok(ast::Expression::Prefix(
+            prefix.expect("Expected a prefix token"),
+            Box::new(expr),
+        ))
+    }
+
+    /// Attempts to parse an infix expression, given the left-hand side to the
+    /// infix expression.
+    fn parse_infix_expression(
+        &mut self,
+        left: ast::Expression,
+    ) -> Result<ast::Expression, error::ParserError> {
+        // Handle the infix operator
+        let operator = self.current_token.clone();
+        let precedence = self.curr_precedence();
+        self.next_token();
+
+        // Parse the right expression
+        let right = self.parse_expression(precedence)?;
+
+        Ok(ast::Expression::Infix(
+            operator.expect("Expected infix operator"),
+            Box::new(left),
+            Box::new(right),
+        ))
+    }
+
     /// Parses the current expression based on precedence rules.
     fn parse_expression(
-        &self,
+        &mut self,
         precedence: precedence::Precdence,
     ) -> Result<ast::Expression, error::ParserError> {
-        match self.current_token {
+        let mut left_expr = match self.current_token {
             Some(token::Token::Ident(_)) => self.parse_identifier(),
             Some(token::Token::Int(_)) => self.parse_integer_literal(),
+            Some(token::Token::Bang) | Some(token::Token::Minus) => self.parse_prefix_expression(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
             ))),
+        };
+
+        // Try to parse the infix expression, if it exists.
+        while !self.peek_token_is(&token::Token::Semicolon) && precedence < self.peek_precedence() {
+            match self.peek_token {
+                Some(_) => {
+                    self.next_token();
+                    let left = left_expr.unwrap();
+                    left_expr = self.parse_infix_expression(left)
+                }
+                None => return left_expr,
+            }
         }
+
+        left_expr
     }
 }
 
@@ -234,44 +300,19 @@ impl<'a> Parser<'a> {
 mod tests {
     use super::*;
 
-    /// Helper function to compare `Let` statements by their variants, ignoring
-    /// expressions for now.
-    /// TODO: Handle expressions in the future.
-    fn assert_let_statement(expected: &ast::Statement, actual: &ast::Statement, index: usize) {
-        match (expected, actual) {
-            (ast::Statement::Let(expected_name, _), ast::Statement::Let(actual_name, _)) => {
-                assert_eq!(
-                    expected_name, actual_name,
-                    "statement {} does not match the name, expected={}, got={}",
-                    index, expected_name, actual_name
-                );
+    /// Checks the output of parsing an input program string against the
+    /// expected display output for the parsed program AST.
+    fn check_parse_test_cases(cases: &[(&str, &str)]) {
+        for (input, expected) in cases {
+            let mut l = lexer::Lexer::new(input);
+            let mut p = Parser::new(&mut l);
+            match p.parse_program() {
+                Ok(stmts) => {
+                    let program = ast::Node::Program(stmts);
+                    assert_eq!(expected, &format!("{}", program))
+                }
+                Err(e) => panic!("Parsing error: {}", e),
             }
-            _ => panic!(
-                "statement {} is not a 'Let' statement, expected={:?}, got={:?}",
-                index, expected, actual
-            ),
-        }
-    }
-
-    /// Helper function to compare `Return` statements by their variants,
-    /// ignoring expressions for now.
-    /// TODO: Handle expressions in the future.
-    fn assert_return_statement(expected: &ast::Statement, actual: &ast::Statement, index: usize) {
-        match (expected, actual) {
-            (ast::Statement::Return(_), ast::Statement::Return(_)) => {
-                assert_eq!(
-                    expected.to_string(),
-                    actual.to_string(),
-                    "statement {} does not match the expression, expected_expr={}, got={}",
-                    index,
-                    expected,
-                    actual
-                );
-            }
-            _ => panic!(
-                "statement {} is not a 'Return' statement, expected={:?}, got={:?}",
-                index, expected, actual
-            ),
         }
     }
 
@@ -293,24 +334,21 @@ mod tests {
             );
         }
 
-        let expected = [
+        let expected = vec![
             ast::Statement::Let(
                 "x".to_string(),
-                ast::Expression::Identifier("5".to_string()),
+                ast::Expression::Lit(ast::Literal::Integer(5)),
             ),
             ast::Statement::Let(
                 "y".to_string(),
-                ast::Expression::Identifier("10".to_string()),
+                ast::Expression::Lit(ast::Literal::Integer(10)),
             ),
             ast::Statement::Let(
                 "foobar".to_string(),
-                ast::Expression::Identifier("838383".to_string()),
+                ast::Expression::Lit(ast::Literal::Integer(838383)),
             ),
         ];
-
-        for (i, expected_stmt) in expected.iter().enumerate() {
-            assert_let_statement(expected_stmt, &program[i], i);
-        }
+        assert_eq!(expected, program)
     }
 
     #[test]
@@ -330,7 +368,7 @@ mod tests {
         let mut l = lexer::Lexer::new(input);
         let mut p = Parser::new(&mut l);
         let program = p.parse_program();
-        assert!(program.is_ok());
+        // assert!(program.is_ok());
         let program = program.unwrap();
         if program.len() != 3 {
             panic!(
@@ -338,15 +376,12 @@ mod tests {
                 program.len()
             );
         }
-        let expected = [
-            ast::Statement::Return(ast::Expression::Identifier("5".to_string())),
-            ast::Statement::Return(ast::Expression::Identifier("10".to_string())),
-            ast::Statement::Return(ast::Expression::Identifier("993322".to_string())),
+        let expected = vec![
+            ast::Statement::Return(ast::Expression::Lit(ast::Literal::Integer(5))),
+            ast::Statement::Return(ast::Expression::Lit(ast::Literal::Integer(10))),
+            ast::Statement::Return(ast::Expression::Lit(ast::Literal::Integer(993322))),
         ];
-
-        for (i, expected_stmt) in expected.iter().enumerate() {
-            assert_return_statement(expected_stmt, &program[i], i);
-        }
+        assert_eq!(expected, program)
     }
 
     #[test]
@@ -384,9 +419,53 @@ mod tests {
         let mut p = Parser::new(&mut l);
         let program = p.parse_program().unwrap();
         assert_eq!(program.len(), 1);
-        let expected = vec![ast::Statement::Expr(ast::Expression::LitExpr(
+        let expected = vec![ast::Statement::Expr(ast::Expression::Lit(
             ast::Literal::Integer(5),
         ))];
         assert_eq!(expected, program);
+    }
+
+    #[test]
+    fn test_parsing_prefix_expressions() {
+        // test_case[i] = (input str, expected formatted parsed representation)
+        let prefix_cases = [("!5;", "(!5)"), ("-15;", "(-15)")];
+        check_parse_test_cases(&prefix_cases);
+    }
+
+    #[test]
+    fn test_parsing_infix_expressions() {
+        let infix_tests = [
+            ("5 + 5;", "(5 + 5)"),
+            ("5 - 5;", "(5 - 5)"),
+            ("5 * 5;", "(5 * 5)"),
+            ("5 / 5;", "(5 / 5)"),
+            ("5 > 5;", "(5 > 5)"),
+            ("5 < 5;", "(5 < 5)"),
+            ("5 == 5;", "(5 == 5)"),
+            ("5 != 5;", "(5 != 5)"),
+        ];
+        check_parse_test_cases(&infix_tests);
+    }
+
+    #[test]
+    fn test_operator_precedence_parsing() {
+        let precedence_tests = [
+            ("-a * b", "((-a) * b)"),
+            ("!-a", "(!(-a))"),
+            ("a + b + c", "((a + b) + c)"),
+            ("a + b - c", "((a + b) - c)"),
+            ("a * b * c", "((a * b) * c)"),
+            ("a * b / c", "((a * b) / c)"),
+            ("a + b / c", "(a + (b / c))"),
+            ("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
+            ("3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"),
+            ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
+            ("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
+            (
+                "3 + 4 * 5 == 3 * 1 + 4 * 5",
+                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+            ),
+        ];
+        check_parse_test_cases(&precedence_tests);
     }
 }
