@@ -20,7 +20,7 @@ pub enum Node {
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Node::Program(stmts) => write!(f, "{}", display_program(stmts)),
+            Node::Program(stmts) => write!(f, "{}", display_statements(stmts)),
             Node::Stmt(stmt) => write!(f, "{}", stmt),
             Node::Expr(expr) => write!(f, "{}", expr),
         }
@@ -65,6 +65,10 @@ impl fmt::Display for Statement {
     }
 }
 
+/// Represents the series of statements enclosed within an opening `{{` and a
+/// closing `}}`.
+pub type BlockStatement = Vec<Statement>;
+
 /// An expression is a value or a computation that produces a value.
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Expression {
@@ -77,6 +81,13 @@ pub enum Expression {
     /// An infix parse function, which takes another expression (the "left
     /// side") as an argument
     Infix(token::Token, Box<Expression>, Box<Expression>),
+    /// An if expression, where the produced value is the last evaluated line.
+    /// An if expression can be defined by the following grammar:
+    /// ```ebnf
+    /// if (<condition>) <consequence> else <alternative>
+    /// ```
+    /// where `consequence` and `alternative` are block statements.
+    If(Box<Expression>, BlockStatement, Option<BlockStatement>),
 }
 
 impl fmt::Display for Expression {
@@ -86,6 +97,24 @@ impl fmt::Display for Expression {
             Expression::Prefix(op, right) => write!(f, "({}{})", op, right),
             Expression::Infix(op, left, right) => write!(f, "({} {} {})", left, op, right),
             Expression::Lit(literal) => write!(f, "{}", literal),
+            Expression::If(condition, consequence, alternative) => {
+                if let Some(alternative) = alternative {
+                    write!(
+                        f,
+                        "if {} {{ {} }} else {{ {} }}",
+                        condition,
+                        display_statements(consequence),
+                        display_statements(alternative),
+                    )
+                } else {
+                    write!(
+                        f,
+                        "if {} {{ {} }}",
+                        condition,
+                        display_statements(consequence),
+                    )
+                }
+            }
         }
     }
 }
@@ -95,7 +124,7 @@ impl fmt::Display for Expression {
 pub enum Literal {
     /// An integer literal, e.g. `5;`
     Integer(i32),
-    /// A boolean literal
+    /// A Boolean literal, e.g. `true` or `false`
     Boolean(bool),
     // Add more literal variants here
 }
@@ -109,8 +138,9 @@ impl fmt::Display for Literal {
     }
 }
 
-/// Format program statements into a string representation.
-fn display_program(stmts: &[Statement]) -> String {
+/// Format program statements into a string representation delimited by an
+/// empty string.
+fn display_statements(stmts: &[Statement]) -> String {
     stmts
         .iter()
         .map(|stmt| stmt.to_string())

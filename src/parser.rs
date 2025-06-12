@@ -243,6 +243,71 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Attempts to parse a group expression, starting from the opening
+    /// `token::Token::LParen` token.
+    fn parse_grouped_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
+        // Advance past the opening left parenthesis
+        self.next_token();
+
+        let expr = self.parse_expression(precedence::Precdence::Lowest)?;
+        self.expect_peek_token(&token::Token::RParen)?;
+
+        Ok(expr)
+    }
+
+    /// Parses the if-else expression from the current token, returning an
+    /// `ast::Expression::If(...)` node of the condition, consequence, and
+    /// optional alternative expressions and block statements, respectively.
+    fn parse_if_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
+        self.expect_peek_token(&token::Token::LParen)?;
+        self.next_token();
+
+        // Parse condition expression
+        let condition = self.parse_expression(precedence::Precdence::Lowest)?;
+        self.expect_peek_token(&token::Token::RParen)?;
+
+        // Parse consequence expression
+        self.expect_peek_token(&token::Token::LBrace)?;
+        let consequence = self.parse_block_statement()?;
+
+        // Parse alternative expression, if it exists
+        let alternative = if self.peek_token_is(&token::Token::Else) {
+            self.next_token();
+            self.expect_peek_token(&token::Token::LBrace)?;
+            Some(self.parse_block_statement()?)
+        } else {
+            None
+        };
+
+        Ok(ast::Expression::If(
+            Box::new(condition),
+            consequence,
+            alternative,
+        ))
+    }
+
+    /// Parses the block statement from the current token, which should be on
+    /// the opening curly left brace.
+    fn parse_block_statement(&mut self) -> Result<ast::BlockStatement, error::ParserError> {
+        // Advance past the opening curly brace
+        self.next_token();
+
+        let mut block_statement = Vec::new();
+
+        // Continue to parse statement until we either reach the end of the
+        // block statement or EOF.
+        while !self.current_token_is(&token::Token::RBrace)
+            && !self.current_token_is(&token::Token::Eof)
+        {
+            if let Ok(stmt) = self.parse_statement() {
+                block_statement.push(stmt);
+            }
+            self.next_token();
+        }
+
+        Ok(block_statement)
+    }
+
     /// Attempts to parse the current token as a prefix expression.
     fn parse_prefix_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
         let prefix = self.current_token.clone();
@@ -291,6 +356,8 @@ impl<'a> Parser<'a> {
             Some(token::Token::Ident(_)) => self.parse_identifier(),
             Some(token::Token::Int(_)) => self.parse_integer_literal(),
             Some(token::Token::Bang) | Some(token::Token::Minus) => self.parse_prefix_expression(),
+            Some(token::Token::LParen) => self.parse_grouped_expression(),
+            Some(token::Token::If) => self.parse_if_expression(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
@@ -507,7 +574,24 @@ mod tests {
             ("false", "false"),
             ("3 > 5 == false", "((3 > 5) == false)"),
             ("3 < 5 == true", "((3 < 5) == true)"),
+            ("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+            ("(5 + 5) * 2", "((5 + 5) * 2)"),
+            ("2 / (5 + 5)", "(2 / (5 + 5))"),
+            ("-(5 + 5)", "(-(5 + 5))"),
+            ("!(true == true)", "(!(true == true))"),
         ];
         check_parse_test_cases(&precedence_tests);
+    }
+
+    #[test]
+    fn test_if_expression() {
+        let if_case = [("if (x < y) { x }", "if (x < y) { x }")];
+        check_parse_test_cases(&if_case);
+    }
+
+    #[test]
+    fn test_ifelse_expression() {
+        let ifelse_case = [("if (x < y) { x } else { y }", "if (x < y) { x } else { y }")];
+        check_parse_test_cases(&ifelse_case);
     }
 }

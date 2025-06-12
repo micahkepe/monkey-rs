@@ -7,41 +7,68 @@ use std::fmt;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     // Reserved
+    /// An illegal, unrecognized token.
     Illegal,
+    /// Token marking the end of a file stream.
     Eof,
 
     // Identifiers and literals
-    Ident(String), // add, foobar, x, y, ...
-    Int(i32),      // [0-9]
+    /// Identifier, e.g., `add`, `foobar`, `x`, `y`, ...
+    Ident(String),
+    /// Integer literal, e.g., `\[0-9\]`
+    Int(i32),
 
     // Operators
-    Assign,   // =
-    Plus,     // +
-    Minus,    // -
-    Bang,     // !
-    Asterisk, // *
-    Slash,    // /
-    Lt,       // <
-    Gt,       // >
-    Eq,       // ==
-    NotEq,    // !=
+    /// Assignment operator `=`
+    Assign,
+    /// Summation arithmetic operator `+`
+    Plus,
+    /// Subtraction arithmetic operator `-`
+    Minus,
+    /// Negation logical operator `!`
+    Bang,
+    /// Multiplication arithmetic operator `*`
+    Asterisk,
+    /// Division arithmetic operator `/`
+    Slash,
+    /// Less than logical operator `<`
+    Lt,
+    /// Greater than logical operator `>`
+    Gt,
+    /// Equality logical operator `==`
+    Eq,
+    /// Inequality logical operator `!=`
+    NotEq,
 
     // Delimiters
-    Comma,     // ,
-    Semicolon, // ;
-    LParen,    // (
-    RParen,    // )
-    LBrace,    // {
-    RBrace,    // }
+    /// Comma `,`
+    Comma,
+    /// Semicolon `;`
+    Semicolon,
+    /// Left parenthesis `(`
+    LParen,
+    /// Right parenthesis `)`
+    RParen,
+    /// Left square brace `\[`
+    LBrace,
+    /// Right square brace `\]`
+    RBrace,
 
     // Keywords
-    Function, // fn
-    Let,      // let
-    True,     // true
-    False,    //  false
-    If,       // if
-    Else,     // else
-    Return,   // return
+    /// `fn` keyword
+    Function,
+    /// `let` keyword
+    Let,
+    /// `true` keyword
+    True,
+    /// `false` keyword
+    False,
+    /// `if` keyword
+    If,
+    /// `else` keyword
+    Else,
+    /// `return` keyword
+    Return,
 }
 
 impl fmt::Display for Token {
@@ -65,8 +92,8 @@ impl fmt::Display for Token {
             Token::Semicolon => write!(f, ";"),
             Token::LParen => write!(f, "("),
             Token::RParen => write!(f, ")"),
-            Token::LBrace => write!(f, "{{"), // escape
-            Token::RBrace => write!(f, "}}"), // escape
+            Token::LBrace => write!(f, "{{"), // escaped
+            Token::RBrace => write!(f, "}}"), // escaped
             Token::Function => write!(f, "FUNCTION"),
             Token::Let => write!(f, "LET"),
             Token::True => write!(f, "TRUE"),
@@ -78,7 +105,9 @@ impl fmt::Display for Token {
     }
 }
 
-/// Map a raw identifier to either a keyword token or an `Ident`
+/// Return the token associated with a raw identifier. If the identifier is not
+/// associated with a defined keyword, (e.g., a user-defined identifier),
+/// defaults to `Token::Ident`.
 pub fn lookup_ident(ident: &str) -> Token {
     match ident {
         // keywords
