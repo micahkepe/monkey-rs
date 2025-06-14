@@ -5,8 +5,7 @@
 </div>
 
 A Rust implementation of the [Monkey](https://monkeylang.org/) programming
-language from Thorsten Ball's
-[Writing An Interpreter In Go](https://interpreterbook.com/).
+language from Thorsten Ball's [Writing An Interpreter In Go](https://interpreterbook.com/).
 
 > _"But why the name? Why is it called “Monkey”? Well, because monkeys are
 > magnificent, elegant, fascinating and funny creatures. Exactly like our
@@ -19,4 +18,4 @@ language from Thorsten Ball's
 - [ ] Evaluation
 - [ ] Extending the Interpreter
 - [ ] Macro System ("The Lost Chapter")
-- [ ] Documentation w/ [`mdbook`](https://github.com/rust-lang/mdBook)
+- [ ] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
