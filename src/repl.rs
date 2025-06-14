@@ -5,13 +5,9 @@ use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::fs;
 
-use crate::lexer;
-use crate::token;
+use crate::parser;
 
-/// The prompt to display to the user
-const PROMPT: &str = ">> ";
-
-/// Runs a simple REPL for the user to run Monkey code.
+/// Runs a simple Read-Eval-Print-Loop (REPL) for the user to run Monkey code.
 pub fn start() -> Result<()> {
     let mut rl = DefaultEditor::new()?;
     let history_path = "/tmp/.monkey-history.txt";
@@ -49,14 +45,9 @@ pub fn start() -> Result<()> {
 
                 rl.add_history_entry(&input)?;
 
-                let mut l = lexer::Lexer::new(&input);
-
-                loop {
-                    let tok = l.next_token();
-                    if tok == token::Token::Eof {
-                        break;
-                    }
-                    println!("{:?}", tok)
+                match parser::parse(&input) {
+                    Ok(program) => println!("{}", program),
+                    Err(e) => eprintln!("{}", e),
                 }
             }
             Err(ReadlineError::Eof | ReadlineError::Interrupted) => {

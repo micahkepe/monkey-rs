@@ -15,7 +15,7 @@ language from Thorsten Ball's
 ## TODOs
 
 - [x] Lexer
-- [ ] Parser
+- [x] Parser
 - [ ] Evaluation
 - [ ] Extending the Interpreter
 - [ ] Macro System ("The Lost Chapter")

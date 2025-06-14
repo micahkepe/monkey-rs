@@ -12,6 +12,14 @@ pub(crate) mod ast;
 pub mod error;
 pub mod precedence;
 
+/// Exposed function to parse a given input into a `ast::Node::Program`.
+pub fn parse(input: &str) -> Result<ast::Node, error::ParserError> {
+    let mut lexer = lexer::Lexer::new(input);
+    let mut parser = Parser::new(&mut lexer);
+    let program = parser.parse_program()?;
+    Ok(ast::Node::Program(program))
+}
+
 /// Parses the token stream into an AST.
 struct Parser<'a> {
     /// Lexer instance to read tokens from.
@@ -34,7 +42,7 @@ impl<'a> Parser<'a> {
             errors: Vec::new(),
         };
 
-        // Read two token so set `current` and `peek`
+        // Read two token to set `current` and `peek`
         parser.next_token();
         parser.next_token();
         parser
@@ -376,6 +384,43 @@ impl<'a> Parser<'a> {
         Ok(identifiers)
     }
 
+    /// Parse the function call expression from the current token.
+    fn parse_call_expression(
+        &mut self,
+        expr: ast::Expression,
+    ) -> Result<ast::Expression, error::ParserError> {
+        let args = self.parse_call_arguments()?;
+        Ok(ast::Expression::Call(Box::new(expr), args))
+    }
+
+    /// Parse the function call arguments from the current token.
+    fn parse_call_arguments(&mut self) -> Result<Vec<ast::Expression>, error::ParserError> {
+        let mut args = Vec::new();
+
+        // Early exit in case of empty arguments list
+        if self.peek_token_is(&token::Token::RParen) {
+            self.next_token();
+            return Ok(args);
+        }
+
+        // Advance past opening left parenthesis
+        self.next_token();
+
+        // Parse first argument expression
+        args.push(self.parse_expression(precedence::Precdence::Lowest)?);
+
+        while self.peek_token_is(&token::Token::Comma) {
+            self.next_token();
+            self.next_token();
+            args.push(self.parse_expression(precedence::Precdence::Lowest)?);
+        }
+
+        // Check for closing right parenthesis
+        self.expect_peek_token(&token::Token::RParen)?;
+
+        Ok(args)
+    }
+
     /// Attempts to parse the current token as a prefix expression.
     fn parse_prefix_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
         let prefix = self.current_token.clone();
@@ -443,10 +488,28 @@ impl<'a> Parser<'a> {
         // semantic behavior of semicolons and expression-ending delimiters.
         while !self.peek_token_is(&token::Token::Semicolon) && precedence < self.peek_precedence() {
             match self.peek_token {
-                Some(_) => {
+                Some(token::Token::Plus)
+                | Some(token::Token::Minus)
+                | Some(token::Token::Slash)
+                | Some(token::Token::Asterisk)
+                | Some(token::Token::Eq)
+                | Some(token::Token::NotEq)
+                | Some(token::Token::Lt)
+                | Some(token::Token::Gt) => {
                     self.next_token();
                     let left = left_expr.unwrap();
                     left_expr = self.parse_infix_expression(left)
+                }
+                Some(token::Token::LParen) => {
+                    self.next_token();
+                    let expr = left_expr.unwrap();
+                    left_expr = self.parse_call_expression(expr)
+                }
+                Some(_) => {
+                    return Err(error::ParserError::new(format!(
+                        "No infix parse function for {:?}",
+                        &self.peek_token
+                    )))
                 }
                 None => return left_expr,
             }
@@ -648,6 +711,15 @@ mod tests {
             ("2 / (5 + 5)", "(2 / (5 + 5))"),
             ("-(5 + 5)", "(-(5 + 5))"),
             ("!(true == true)", "(!(true == true))"),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            (
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            ),
+            (
+                "add(a + b + c * d / f + g)",
+                "add((((a + b) + ((c * d) / f)) + g))",
+            ),
         ];
         check_parse_test_cases(&precedence_tests);
     }
@@ -672,11 +744,17 @@ mod tests {
 
     #[test]
     fn test_function_parameter_parsing() {
-        let fn_params = [
+        let fn_params_cases = [
             ("fn() {};", "fn() {  }"),
             ("fn(x) {};", "fn(x) {  }"),
             ("fn(x, y, z) {};", "fn(x, y, z) {  }"),
         ];
-        check_parse_test_cases(&fn_params);
+        check_parse_test_cases(&fn_params_cases);
+    }
+
+    #[test]
+    fn test_call_expression_parsing() {
+        let fn_call_cases = [("add(1, 2 * 3, 4 + 5)", "add(1, (2 * 3), (4 + 5))")];
+        check_parse_test_cases(&fn_call_cases);
     }
 }

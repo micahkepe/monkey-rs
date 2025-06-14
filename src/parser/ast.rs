@@ -74,13 +74,17 @@ pub type BlockStatement = Vec<Statement>;
 pub enum Expression {
     /// An identifier expression, which represents a variable.
     Identifier(String),
+
     /// A literal expression, e.g. an integer, boolean, string, array, or hash.
     Lit(Literal),
+
     /// A prefix parse function
     Prefix(token::Token, Box<Expression>),
+
     /// An infix parse function, which takes another expression (the "left
     /// side") as an argument
     Infix(token::Token, Box<Expression>, Box<Expression>),
+
     /// An if expression, where the produced value is the last evaluated line.
     /// An if expression can be defined by the following grammar:
     /// ```ebnf
@@ -88,7 +92,24 @@ pub enum Expression {
     /// ```
     /// where `consequence` and `alternative` are block statements.
     If(Box<Expression>, BlockStatement, Option<BlockStatement>),
+
+    /// A function literal. Abstractly, function literals can be represented
+    /// as follows:
+    /// ```ebnf
+    /// fn <parameters> <block statement>
+    /// ```
+    /// where parameters is an optionally-empty comma-separated list of
+    /// identifiers surrounded by parentheses:
+    /// ```ebnf
+    /// (<parameter one>, <parameter two>, <parameter three>, ...)
+    /// ```
     Fn(Vec<String>, BlockStatement),
+
+    /// A function call expression, which can be represented abstractly as:
+    /// ```ebnf
+    /// <expression>(<comma-separated expressions>)
+    /// ```
+    Call(Box<Expression>, Vec<Expression>),
 }
 
 impl fmt::Display for Expression {
@@ -124,6 +145,9 @@ impl fmt::Display for Expression {
                     display_statements(body)
                 )
             }
+            Expression::Call(function_expr, arguments) => {
+                write!(f, "{}({})", function_expr, display_expressions(arguments))
+            }
         }
     }
 }
@@ -153,6 +177,15 @@ fn display_statements(stmts: &[Statement]) -> String {
     stmts
         .iter()
         .map(|stmt| stmt.to_string())
-        .collect::<Vec<_>>()
+        .collect::<Vec<String>>()
         .join("")
+}
+
+/// Format expressions array into a comma-separated string representation.
+fn display_expressions(expressions: &[Expression]) -> String {
+    expressions
+        .iter()
+        .map(|expr| expr.to_string())
+        .collect::<Vec<String>>()
+        .join(", ")
 }
