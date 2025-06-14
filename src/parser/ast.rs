@@ -88,6 +88,7 @@ pub enum Expression {
     /// ```
     /// where `consequence` and `alternative` are block statements.
     If(Box<Expression>, BlockStatement, Option<BlockStatement>),
+    Fn(Vec<String>, BlockStatement),
 }
 
 impl fmt::Display for Expression {
@@ -114,6 +115,14 @@ impl fmt::Display for Expression {
                         display_statements(consequence),
                     )
                 }
+            }
+            Expression::Fn(parameters, body) => {
+                write!(
+                    f,
+                    "fn({}) {{ {} }}",
+                    parameters.join(", "),
+                    display_statements(body)
+                )
             }
         }
     }

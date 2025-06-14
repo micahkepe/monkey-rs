@@ -308,6 +308,74 @@ impl<'a> Parser<'a> {
         Ok(block_statement)
     }
 
+    /// Parses the function literal from the current token.
+    fn parse_function_literal(&mut self) -> Result<ast::Expression, error::ParserError> {
+        self.expect_peek_token(&token::Token::LParen)?;
+
+        // Parse the parameters of the function
+        let parameters = self.parse_function_parameters()?;
+
+        self.expect_peek_token(&token::Token::LBrace)?;
+
+        let body = self.parse_block_statement()?;
+        Ok(ast::Expression::Fn(parameters, body))
+    }
+
+    /// Parses the parameters of a function literal expression.
+    fn parse_function_parameters(&mut self) -> Result<Vec<String>, error::ParserError> {
+        let mut identifiers = Vec::new();
+
+        // Early exit in the case of no parameters/ empty list
+        if self.peek_token_is(&token::Token::RParen) {
+            self.next_token();
+            return Ok(identifiers);
+        }
+
+        // Advance past the opening left parenthesis
+        self.next_token();
+
+        // Add the current identifier
+        match &self.current_token {
+            Some(token::Token::Ident(ref param)) => identifiers.push(param.clone()),
+            Some(token) => {
+                return Err(error::ParserError::new(format!(
+                    "Expected a parameter identifer, got {}",
+                    token
+                )))
+            }
+            None => {
+                return Err(error::ParserError::new(
+                    "Expected a parameter identifer, received None".to_string(),
+                ))
+            }
+        }
+
+        // Add parameter identifier(s) following the first parameter, if they
+        // exist
+        while self.peek_token_is(&token::Token::Comma) {
+            self.next_token();
+            self.next_token();
+            match &self.current_token {
+                Some(token::Token::Ident(ref param)) => identifiers.push(param.clone()),
+                Some(token) => {
+                    return Err(error::ParserError::new(format!(
+                        "Expected a parameter identifer, got {}",
+                        token
+                    )))
+                }
+                None => {
+                    return Err(error::ParserError::new(
+                        "Expected a parameter identifer, received None".to_string(),
+                    ))
+                }
+            }
+        }
+
+        self.expect_peek_token(&token::Token::RParen)?;
+
+        Ok(identifiers)
+    }
+
     /// Attempts to parse the current token as a prefix expression.
     fn parse_prefix_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
         let prefix = self.current_token.clone();
@@ -358,6 +426,7 @@ impl<'a> Parser<'a> {
             Some(token::Token::Bang) | Some(token::Token::Minus) => self.parse_prefix_expression(),
             Some(token::Token::LParen) => self.parse_grouped_expression(),
             Some(token::Token::If) => self.parse_if_expression(),
+            Some(token::Token::Function) => self.parse_function_literal(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
@@ -593,5 +662,21 @@ mod tests {
     fn test_ifelse_expression() {
         let ifelse_case = [("if (x < y) { x } else { y }", "if (x < y) { x } else { y }")];
         check_parse_test_cases(&ifelse_case);
+    }
+
+    #[test]
+    fn test_function_literal_parsing() {
+        let fn_literal_case = [("fn(x, y) { x + y; }", "fn(x, y) { (x + y) }")];
+        check_parse_test_cases(&fn_literal_case);
+    }
+
+    #[test]
+    fn test_function_parameter_parsing() {
+        let fn_params = [
+            ("fn() {};", "fn() {  }"),
+            ("fn(x) {};", "fn(x) {  }"),
+            ("fn(x, y, z) {};", "fn(x, y, z) {  }"),
+        ];
+        check_parse_test_cases(&fn_params);
     }
 }
