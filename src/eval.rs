@@ -16,7 +16,7 @@ use crate::{parser::ast, token};
 pub fn eval(node: ast::Node) -> Result<Rc<object::Object>, error::EvaluationError> {
     match node {
         /* Statements */
-        ast::Node::Program(statements) => eval_statements(&statements),
+        ast::Node::Program(program) => eval_program(&program),
         ast::Node::Stmt(statement) => eval_statement(&statement),
         /* Expressions */
         ast::Node::Expr(expression) => eval_expression(&expression),
@@ -56,16 +56,34 @@ fn eval_expression(
             let condition = eval_expression(condition)?;
 
             if is_truthy(&condition) {
-                eval_statements(consequence)
+                eval_block_statement(consequence)
             } else {
                 match alternative {
-                    Some(alt) => eval_statements(alt),
+                    Some(alt) => eval_block_statement(alt),
                     None => Ok(Rc::new(object::Object::Null)),
                 }
             }
         }
         _ => Ok(Rc::new(object::Object::Null)),
     }
+}
+
+/// Evaluate statements within a block statement.
+fn eval_block_statement(
+    statements: &[ast::Statement],
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    let mut result = Rc::new(object::Object::Null);
+
+    for stmt in statements {
+        result = eval_statement(stmt)?;
+
+        match *result {
+            object::Object::Return(_) => return Ok(result),
+            _ => continue,
+        }
+    }
+
+    Ok(result)
 }
 
 /// Evaluates the given infix expression from its operator, and left and right
@@ -180,19 +198,27 @@ fn eval_statement(
 ) -> Result<Rc<object::Object>, error::EvaluationError> {
     match statement {
         ast::Statement::Expr(expr) => eval_expression(expr),
+        ast::Statement::Return(expr) => {
+            let val = eval_expression(expr)?;
+            Ok(Rc::new(object::Object::Return(val)))
+        }
         _ => Ok(Rc::new(object::Object::Null)),
     }
 }
 
 /// Evaluate parsed Monkey AST statements and return their corresponding
 /// object representation.
-fn eval_statements(
-    program: &[ast::Statement],
-) -> Result<Rc<object::Object>, error::EvaluationError> {
+fn eval_program(program: &[ast::Statement]) -> Result<Rc<object::Object>, error::EvaluationError> {
     let mut result = Rc::new(object::Object::Null);
 
     for stmt in program {
         result = eval_statement(stmt)?;
+
+        // Return early if encounter a return statement
+        match *result {
+            object::Object::Return(_) => return Ok(result),
+            _ => continue,
+        }
     }
 
     Ok(result)
@@ -290,5 +316,26 @@ mod tests {
             ("if (1 < 2) { 10 } else { 20 }", "10"),
         ];
         check_eval_case(&if_else_cases);
+    }
+
+    #[test]
+    fn test_return_statements() {
+        let return_cases = [
+            ("return 10;", "10"),
+            ("return 10; 9;", "10"),
+            ("return 2 * 5; 9;", "10"),
+            ("9; return 2 * 5; 9;", "10"),
+            (
+                "if (10 > 1) {\
+                    if (10 > 1) {\
+                        return 10;\
+                    }\
+                    \
+                    return 1;\
+             }",
+                "10",
+            ),
+        ];
+        check_eval_case(&return_cases);
     }
 }

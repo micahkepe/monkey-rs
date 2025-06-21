@@ -5,6 +5,7 @@ Defines the evaluation objects, e.g., the object system, of the Monkey
 programming language.
 */
 use std::fmt::Display;
+use std::rc::Rc;
 
 /// Represents objects in Monkey that can represent the values the source AST
 /// represents or the values generated from evaluating the AST.
@@ -16,6 +17,8 @@ pub enum Object {
     Boolean(bool),
     /// Represents the absence of a value.
     Null,
+    /// Represents a return value object
+    Return(Rc<Object>),
 }
 
 impl Display for Object {
@@ -24,6 +27,7 @@ impl Display for Object {
             Object::Integer(int) => write!(f, "{}", int),
             Object::Boolean(bool) => write!(f, "{}", bool),
             Object::Null => write!(f, "null"),
+            Object::Return(object) => write!(f, "{}", object),
         }
     }
 }
