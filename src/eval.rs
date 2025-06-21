@@ -23,6 +23,14 @@ pub fn eval(node: ast::Node) -> Result<Rc<object::Object>, error::EvaluationErro
     }
 }
 
+/// Returns whether the given object is "truthy."
+fn is_truthy(object: &object::Object) -> bool {
+    !matches!(
+        *object,
+        object::Object::Boolean(false) | object::Object::Null
+    )
+}
+
 /// Evaluate a parsed Monkey AST expression node and return its corresponding
 /// object representation.
 fn eval_expression(
@@ -43,6 +51,18 @@ fn eval_expression(
             let left = eval_expression(left)?;
             let right = eval_expression(right)?;
             eval_infix_expression(operator, &left, &right)
+        }
+        ast::Expression::If(condition, consequence, alternative) => {
+            let condition = eval_expression(condition)?;
+
+            if is_truthy(&condition) {
+                eval_statements(consequence)
+            } else {
+                match alternative {
+                    Some(alt) => eval_statements(alt),
+                    None => Ok(Rc::new(object::Object::Null)),
+                }
+            }
         }
         _ => Ok(Rc::new(object::Object::Null)),
     }
@@ -256,5 +276,19 @@ mod tests {
             ("!!5", "true"),
         ];
         check_eval_case(&bang_cases);
+    }
+
+    #[test]
+    fn test_if_else_expressions() {
+        let if_else_cases = [
+            ("if (true) { 10 }", "10"),
+            ("if (false) { 10 }", "null"),
+            ("if (1) { 10 }", "10"),
+            ("if (1 < 2) { 10 }", "10"),
+            ("if (1 > 2) { 10 }", "null"),
+            ("if (1 > 2) { 10 } else { 20 }", "20"),
+            ("if (1 < 2) { 10 } else { 20 }", "10"),
+        ];
+        check_eval_case(&if_else_cases);
     }
 }
