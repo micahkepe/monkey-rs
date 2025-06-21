@@ -1,6 +1,8 @@
-//! # AST
-//!
-//! Defines the nodes that comprise the constructed AST from Monkey source code.
+/*!
+# AST
+
+Defines the nodes that comprise the constructed AST from Monkey source code.
+*/
 
 use std::fmt;
 

@@ -1,6 +1,8 @@
-//! # REPL
-//!
-//! Defines a Read-Eval-Print-Loop (REPL) for the Monkey programming language.
+/*!
+# REPL
+
+Defines a Read-Eval-Print-Loop (REPL) for the Monkey programming language.
+*/
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::fs;

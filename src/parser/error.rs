@@ -1,7 +1,9 @@
-//! # Error
-//!
-//! Defines the `ParserError` type, which is used to represent errors that occur
-//! during parsing.
+/*!
+# Error
+
+Defines the `ParserError` type, which is used to represent errors that occur
+during parsing.
+*/
 use std::fmt;
 
 /// An error encountered while performing parsing.

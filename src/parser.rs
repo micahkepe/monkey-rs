@@ -1,9 +1,11 @@
-//! # Parser
-//!
-//! Parses the input token stream into an AST and performs syntactic analysis.
-//! The parsing is accomplished via "top down operator precedence," also known
-//! as Pratt Parsing based off Vaughan Pratt's 1973 paper ["Top Down Operator
-//! Precdence"](https://dl.acm.org/doi/10.1145/512927.512931).
+/*!
+# Parser
+
+Parses the input token stream into an AST and performs syntactic analysis.
+The parsing is accomplished via "top down operator precedence," also known
+as Pratt Parsing based off Vaughan Pratt's 1973 paper ["Top Down Operator
+Precdence"](https://dl.acm.org/doi/10.1145/512927.512931).
+*/
 
 use crate::lexer;
 use crate::token;

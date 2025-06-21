@@ -1,5 +1,7 @@
-//! A simple character‑based lexer that turns source text into a stream
-//! of `Token`s, handling identifiers, numbers, operators, and whitespace.
+/*!
+A simple character‑based lexer that turns source text into a stream
+of `Token`s, handling identifiers, numbers, operators, and whitespace.
+*/
 
 use crate::token;
 

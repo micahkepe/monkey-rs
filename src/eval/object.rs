@@ -1,7 +1,9 @@
-//! # Object
-//!
-//! Defines the evaluation objects, e.g., the object system, of the Monkey
-//! programming language.
+/*!
+# Object
+
+Defines the evaluation objects, e.g., the object system, of the Monkey
+programming language.
+*/
 use std::fmt::Display;
 
 /// Represents objects in Monkey that can represent the values the source AST

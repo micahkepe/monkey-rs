@@ -1,6 +1,8 @@
-//! # Token Precedence
-//!
-//! Defines the precedences of tokens in the Monkey programming language.
+/*!
+# Token Precedence
+
+Defines the precedences of tokens in the Monkey programming language.
+*/
 use crate::token;
 
 /// Defines the precedences of the Monkey programming language.
