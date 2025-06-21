@@ -218,7 +218,7 @@ impl<'a> Parser<'a> {
             // collect errors for display
             let error_messages: Vec<String> = self.errors.iter().map(|e| e.to_string()).collect();
             return Err(error::ParserError::new(format!(
-                "Encountered {} errors while parsing:\n{}",
+                "Encountered {} error(s) while parsing:\n{}",
                 self.errors.len(),
                 error_messages.join("\n")
             )));
@@ -499,13 +499,17 @@ impl<'a> Parser<'a> {
                 | Some(token::Token::Lt)
                 | Some(token::Token::Gt) => {
                     self.next_token();
-                    let left = left_expr.unwrap();
-                    left_expr = self.parse_infix_expression(left)
+                    match left_expr {
+                        Ok(left) => left_expr = self.parse_infix_expression(left),
+                        Err(e) => return Err(e),
+                    }
                 }
                 Some(token::Token::LParen) => {
                     self.next_token();
-                    let expr = left_expr.unwrap();
-                    left_expr = self.parse_call_expression(expr)
+                    match left_expr {
+                        Ok(expr) => left_expr = self.parse_call_expression(expr),
+                        Err(e) => return Err(e),
+                    };
                 }
                 Some(_) => {
                     return Err(error::ParserError::new(format!(

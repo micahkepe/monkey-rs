@@ -39,7 +39,75 @@ fn eval_expression(
             let right = eval_expression(expression)?;
             eval_prefix_expression(operator, &right)
         }
+        ast::Expression::Infix(operator, left, right) => {
+            let left = eval_expression(left)?;
+            let right = eval_expression(right)?;
+            eval_infix_expression(operator, &left, &right)
+        }
         _ => Ok(Rc::new(object::Object::Null)),
+    }
+}
+
+/// Evaluates the given infix expression from its operator, and left and right
+/// expressions.
+fn eval_infix_expression(
+    operator: &token::Token,
+    left: &Rc<object::Object>,
+    right: &Rc<object::Object>,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match (&**left, &**right) {
+        (object::Object::Integer(left_int), object::Object::Integer(right_int)) => {
+            eval_integer_infix_expression(operator, *left_int, *right_int)
+        }
+        (object::Object::Boolean(left_b), object::Object::Boolean(right_b)) => {
+            eval_boolean_infix_expression(operator, *left_b, *right_b)
+        }
+        _ => Err(error::EvaluationError::new(format!(
+            "type mismatch: {} {} {}",
+            left, operator, right
+        ))),
+    }
+}
+
+/// Evaluates the given Boolean infix expression from the left and right
+/// expressions and the Boolean logical operator.
+fn eval_boolean_infix_expression(
+    operator: &token::Token,
+    left_b: bool,
+    right_b: bool,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match operator {
+        token::Token::Eq => Ok(Rc::new(object::Object::Boolean(left_b == right_b))),
+        token::Token::NotEq => Ok(Rc::new(object::Object::Boolean(left_b != right_b))),
+        _ => Err(error::EvaluationError::new(format!(
+            "unknown operator: {} {} {}",
+            left_b, operator, right_b
+        ))),
+    }
+}
+
+/// Evaluates the given integer infix expression from the left and right
+/// expressions and the infix arithmetic or logical operator.
+fn eval_integer_infix_expression(
+    operator: &token::Token,
+    left_int: i64,
+    right_int: i64,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match operator {
+        /* Arithmetic operators */
+        token::Token::Plus => Ok(Rc::new(object::Object::Integer(left_int + right_int))),
+        token::Token::Minus => Ok(Rc::new(object::Object::Integer(left_int - right_int))),
+        token::Token::Asterisk => Ok(Rc::new(object::Object::Integer(left_int * right_int))),
+        token::Token::Slash => Ok(Rc::new(object::Object::Integer(left_int / right_int))),
+        /* Logical operators */
+        token::Token::Gt => Ok(Rc::new(object::Object::Boolean(left_int > right_int))),
+        token::Token::Lt => Ok(Rc::new(object::Object::Boolean(left_int < right_int))),
+        token::Token::Eq => Ok(Rc::new(object::Object::Boolean(left_int == right_int))),
+        token::Token::NotEq => Ok(Rc::new(object::Object::Boolean(left_int != right_int))),
+        _ => Err(error::EvaluationError::new(format!(
+            "unknown operator: {} {} {}",
+            left_int, operator, right_int
+        ))),
     }
 }
 
@@ -131,13 +199,49 @@ mod tests {
 
     #[test]
     fn test_eval_integer_expression() {
-        let int_cases = [("5", "5"), ("10", "10"), ("-5", "-5"), ("-10", "-10")];
+        let int_cases = [
+            ("5", "5"),
+            ("10", "10"),
+            ("-5", "-5"),
+            ("-10", "-10"),
+            ("5 + 5 + 5 + 5 - 10", "10"),
+            ("2 * 2 * 2 * 2 * 2", "32"),
+            ("-50 + 100 + -50", "0"),
+            ("5 * 2 + 10", "20"),
+            ("5 + 2 * 10", "25"),
+            ("20 + 2 * -10", "0"),
+            ("50 / 2 * 2 + 10", "60"),
+            ("2 * (5 + 10)", "30"),
+            ("3 * 3 * 3 + 10", "37"),
+            ("3 * (3 * 3) + 10", "37"),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", "50"),
+        ];
         check_eval_case(&int_cases);
     }
 
     #[test]
     fn test_eval_boolean_expression() {
-        let int_cases = [("true", "true"), ("false", "false")];
+        let int_cases = [
+            ("true", "true"),
+            ("false", "false"),
+            ("1 < 2", "true"),
+            ("1 > 2", "false"),
+            ("1 < 1", "false"),
+            ("1 > 1", "false"),
+            ("1 == 1", "true"),
+            ("1 != 1", "false"),
+            ("1 == 2", "false"),
+            ("1 != 2", "true"),
+            ("true == true", "true"),
+            ("false == false", "true"),
+            ("true == false", "false"),
+            ("true != false", "true"),
+            ("false != true", "true"),
+            ("(1 < 2) == true", "true"),
+            ("(1 < 2) == false", "false"),
+            ("(1 > 2) == true", "false"),
+            ("(1 > 2) == false", "true"),
+        ];
         check_eval_case(&int_cases);
     }
 
