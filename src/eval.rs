@@ -32,6 +32,9 @@ fn eval_expression(
         ast::Expression::Lit(ast::Literal::Integer(value)) => {
             Ok(Rc::new(object::Object::Integer(*value as i64)))
         }
+        ast::Expression::Lit(ast::Literal::Boolean(value)) => {
+            Ok(Rc::new(object::Object::Boolean(*value)))
+        }
         _ => Ok(Rc::new(object::Object::Null)),
     }
 }
@@ -83,6 +86,12 @@ mod tests {
     #[test]
     fn test_eval_integer_expression() {
         let int_cases = [("5", "5"), ("10", "10")];
+        check_eval_case(&int_cases);
+    }
+
+    #[test]
+    fn test_eval_boolean_expression() {
+        let int_cases = [("true", "true"), ("false", "false")];
         check_eval_case(&int_cases);
     }
 }
