@@ -9,7 +9,7 @@ pub(crate) mod object;
 
 use std::rc::Rc;
 
-use crate::parser::ast;
+use crate::{parser::ast, token};
 
 /// Evaluate a parsed Monkey AST node and return its corresponding object
 /// representation.
@@ -35,7 +35,53 @@ fn eval_expression(
         ast::Expression::Lit(ast::Literal::Boolean(value)) => {
             Ok(Rc::new(object::Object::Boolean(*value)))
         }
+        ast::Expression::Prefix(operator, expression) => {
+            let right = eval_expression(expression)?;
+            eval_prefix_expression(operator, &right)
+        }
         _ => Ok(Rc::new(object::Object::Null)),
+    }
+}
+
+/// Evaluates the given prefix expression from its operator and right
+/// expression.
+fn eval_prefix_expression(
+    operator: &token::Token,
+    right: &Rc<object::Object>,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match operator {
+        token::Token::Bang => eval_bang_operator_expression(right),
+        token::Token::Minus => eval_minus_operator_expression(right),
+        _ => Err(error::EvaluationError::new(format!(
+            "unknown operator: {}{}",
+            operator, right
+        ))),
+    }
+}
+
+/// Evaluates a minus operator expression from the right expression that the
+/// bang is being applied to.
+fn eval_minus_operator_expression(
+    right: &Rc<object::Object>,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match **right {
+        object::Object::Integer(int) => Ok(Rc::new(object::Object::Integer(-int))),
+        _ => Err(error::EvaluationError::new(format!(
+            "unknown operator: -{}",
+            right
+        ))),
+    }
+}
+
+/// Evaluates a bang operator expression from the right expression that the
+/// bang is being applied to.
+fn eval_bang_operator_expression(
+    right: &Rc<object::Object>,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match **right {
+        object::Object::Boolean(b) => Ok(Rc::new(object::Object::Boolean(!b))),
+        object::Object::Null => Ok(Rc::new(object::Object::Boolean(true))),
+        _ => Ok(Rc::new(object::Object::Boolean(false))),
     }
 }
 
@@ -85,7 +131,7 @@ mod tests {
 
     #[test]
     fn test_eval_integer_expression() {
-        let int_cases = [("5", "5"), ("10", "10")];
+        let int_cases = [("5", "5"), ("10", "10"), ("-5", "-5"), ("-10", "-10")];
         check_eval_case(&int_cases);
     }
 
@@ -93,5 +139,18 @@ mod tests {
     fn test_eval_boolean_expression() {
         let int_cases = [("true", "true"), ("false", "false")];
         check_eval_case(&int_cases);
+    }
+
+    #[test]
+    fn test_bang_operator() {
+        let bang_cases = [
+            ("!true", "false"),
+            ("!false", "true"),
+            ("!5", "false"),
+            ("!!true", "true"),
+            ("!!false", "false"),
+            ("!!5", "true"),
+        ];
+        check_eval_case(&bang_cases);
     }
 }
