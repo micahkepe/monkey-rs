@@ -7,6 +7,7 @@ use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::fs;
 
+use crate::eval;
 use crate::parser;
 
 /// Runs a simple Read-Eval-Print-Loop (REPL) for the user to run Monkey code.
@@ -48,7 +49,10 @@ pub fn start() -> Result<()> {
                 rl.add_history_entry(&input)?;
 
                 match parser::parse(&input) {
-                    Ok(program) => println!("{}", program),
+                    Ok(program) => match eval::eval(program) {
+                        Ok(evaluated) => println!("{}", evaluated),
+                        Err(e) => eprintln!("{}", e),
+                    },
                     Err(e) => eprintln!("{}", e),
                 }
             }
