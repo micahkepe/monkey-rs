@@ -338,4 +338,20 @@ mod tests {
         ];
         check_eval_case(&return_cases);
     }
+
+    #[test]
+    fn test_error_handling() {
+        let error_cases = [
+            ("5 + true;", "type mismatch: 5 + true"),
+            ("5 + true; 5;", "type mismatch: 5 + true"),
+            ("-true", "unknown operator: -true"),
+            ("true + false;", "unknown operator: true + false"),
+            ("5; true + false; 5", "unknown operator: true + false"),
+            (
+                "if (10 > 1) { true + false; )",
+                "unknown operator: true + false",
+            ),
+        ];
+        check_eval_case(&error_cases);
+    }
 }
