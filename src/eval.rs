@@ -4,6 +4,7 @@
 Evaluates a parsed Monkey program using a tree-walking evaluation strategy,
 interpreting the parsed AST representation of the source code "on the fly."
 */
+pub(crate) mod environment;
 pub mod error;
 pub(crate) mod object;
 
@@ -13,13 +14,16 @@ use crate::{parser::ast, token};
 
 /// Evaluate a parsed Monkey AST node and return its corresponding object
 /// representation.
-pub fn eval(node: ast::Node) -> Result<Rc<object::Object>, error::EvaluationError> {
+pub fn eval(
+    node: ast::Node,
+    env: &environment::Env,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
     match node {
         /* Statements */
-        ast::Node::Program(program) => eval_program(&program),
-        ast::Node::Stmt(statement) => eval_statement(&statement),
+        ast::Node::Program(program) => eval_program(&program, env),
+        ast::Node::Stmt(statement) => eval_statement(&statement, env),
         /* Expressions */
-        ast::Node::Expr(expression) => eval_expression(&expression),
+        ast::Node::Expr(expression) => eval_expression(&expression, env),
     }
 }
 
@@ -35,8 +39,10 @@ fn is_truthy(object: &object::Object) -> bool {
 /// object representation.
 fn eval_expression(
     expression: &ast::Expression,
+    env: &environment::Env,
 ) -> Result<Rc<object::Object>, error::EvaluationError> {
     match expression {
+        ast::Expression::Identifier(ident) => eval_identifier(ident, env),
         ast::Expression::Lit(ast::Literal::Integer(value)) => {
             Ok(Rc::new(object::Object::Integer(*value as i64)))
         }
@@ -44,22 +50,22 @@ fn eval_expression(
             Ok(Rc::new(object::Object::Boolean(*value)))
         }
         ast::Expression::Prefix(operator, expression) => {
-            let right = eval_expression(expression)?;
+            let right = eval_expression(expression, env)?;
             eval_prefix_expression(operator, &right)
         }
         ast::Expression::Infix(operator, left, right) => {
-            let left = eval_expression(left)?;
-            let right = eval_expression(right)?;
+            let left = eval_expression(left, &Rc::clone(env))?;
+            let right = eval_expression(right, env)?;
             eval_infix_expression(operator, &left, &right)
         }
         ast::Expression::If(condition, consequence, alternative) => {
-            let condition = eval_expression(condition)?;
+            let condition = eval_expression(condition, &Rc::clone(env))?;
 
             if is_truthy(&condition) {
-                eval_block_statement(consequence)
+                eval_block_statement(consequence, env)
             } else {
                 match alternative {
-                    Some(alt) => eval_block_statement(alt),
+                    Some(alt) => eval_block_statement(alt, env),
                     None => Ok(Rc::new(object::Object::Null)),
                 }
             }
@@ -68,14 +74,29 @@ fn eval_expression(
     }
 }
 
+/// Evaluate identifier expression.
+fn eval_identifier(
+    ident: &str,
+    env: &environment::Env,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match env.borrow().get(ident) {
+        Some(obj) => Ok(obj.clone()),
+        None => Err(error::EvaluationError::new(format!(
+            "identifier not found: {}",
+            ident
+        ))),
+    }
+}
+
 /// Evaluate statements within a block statement.
 fn eval_block_statement(
     statements: &[ast::Statement],
+    env: &environment::Env,
 ) -> Result<Rc<object::Object>, error::EvaluationError> {
     let mut result = Rc::new(object::Object::Null);
 
     for stmt in statements {
-        result = eval_statement(stmt)?;
+        result = eval_statement(stmt, env)?;
 
         match *result {
             object::Object::Return(_) => return Ok(result),
@@ -195,24 +216,36 @@ fn eval_bang_operator_expression(
 /// object representation.
 fn eval_statement(
     statement: &ast::Statement,
+    env: &environment::Env,
 ) -> Result<Rc<object::Object>, error::EvaluationError> {
     match statement {
-        ast::Statement::Expr(expr) => eval_expression(expr),
+        ast::Statement::Expr(expr) => eval_expression(expr, &Rc::clone(env)),
+        ast::Statement::Let(ident, expr) => {
+            let val = eval_expression(expr, &Rc::clone(env))?;
+            let obj = Rc::clone(&val);
+
+            // Store value in environment
+            env.borrow_mut().set(ident, obj);
+
+            Ok(val)
+        }
         ast::Statement::Return(expr) => {
-            let val = eval_expression(expr)?;
+            let val = eval_expression(expr, env)?;
             Ok(Rc::new(object::Object::Return(val)))
         }
-        _ => Ok(Rc::new(object::Object::Null)),
     }
 }
 
 /// Evaluate parsed Monkey AST statements and return their corresponding
 /// object representation.
-fn eval_program(program: &[ast::Statement]) -> Result<Rc<object::Object>, error::EvaluationError> {
+fn eval_program(
+    program: &[ast::Statement],
+    env: &environment::Env,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
     let mut result = Rc::new(object::Object::Null);
 
     for stmt in program {
-        result = eval_statement(stmt)?;
+        result = eval_statement(stmt, &Rc::clone(env))?;
 
         // Return early if encounter a return statement
         match *result {
@@ -226,15 +259,19 @@ fn eval_program(program: &[ast::Statement]) -> Result<Rc<object::Object>, error:
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use super::*;
     use crate::parser::*;
 
     /// Checks if the result of evaluating the input matches its expected value
     /// for each case in the provided case (input, expected) tuples.
     fn check_eval_case(cases: &[(&str, &str)]) {
+        let env: environment::Env = Rc::new(RefCell::new(Default::default()));
+
         for (input, expected) in cases {
             match parse(input) {
-                Ok(node) => match eval(node) {
+                Ok(node) => match eval(node, &Rc::clone(&env)) {
                     Ok(eval) => assert_eq!(expected, &format!("{}", eval)),
                     Err(e) => assert_eq!(expected, &format!("{}", e)),
                 },
@@ -351,7 +388,19 @@ mod tests {
                 "if (10 > 1) { true + false; )",
                 "unknown operator: true + false",
             ),
+            ("foobar", "identifier not found: foobar"),
         ];
         check_eval_case(&error_cases);
+    }
+
+    #[test]
+    fn test_let_statement() {
+        let let_stmts = [
+            ("let a = 5; a;", "5"),
+            ("let a = 5 * 5; a;", "25"),
+            ("let a = 5; let b = a; b;", "5"),
+            ("let a = 5; let b = a; let c = a + b + 5; c;", "15"),
+        ];
+        check_eval_case(&let_stmts);
     }
 }

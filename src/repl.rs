@@ -5,14 +5,18 @@ Defines a Read-Eval-Print-Loop (REPL) for the Monkey programming language.
 */
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
+use std::cell::RefCell;
 use std::fs;
+use std::rc::Rc;
 
 use crate::eval;
+use crate::eval::environment::Env;
 use crate::parser;
 
 /// Runs a simple Read-Eval-Print-Loop (REPL) for the user to run Monkey code.
 pub fn start() -> Result<()> {
     let mut rl = DefaultEditor::new()?;
+    let env: Env = Rc::new(RefCell::new(Default::default()));
     let history_path = "/tmp/.monkey-history.txt";
 
     match rl.load_history(history_path) {
@@ -49,7 +53,7 @@ pub fn start() -> Result<()> {
                 rl.add_history_entry(&input)?;
 
                 match parser::parse(&input) {
-                    Ok(program) => match eval::eval(program) {
+                    Ok(program) => match eval::eval(program, &Rc::clone(&env)) {
                         Ok(evaluated) => println!("{}", evaluated),
                         Err(e) => eprintln!("{}", e),
                     },
