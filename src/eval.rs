@@ -8,7 +8,7 @@ pub(crate) mod environment;
 pub mod error;
 pub(crate) mod object;
 
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{parser::ast, token};
 
@@ -70,8 +70,82 @@ fn eval_expression(
                 }
             }
         }
-        _ => Ok(Rc::new(object::Object::Null)),
+        ast::Expression::Fn(params, body) => Ok(Rc::new(object::Object::Function(
+            params.clone(),
+            body.clone(),
+            Rc::clone(env),
+        ))),
+        ast::Expression::Call(func, args) => {
+            let func = eval_expression(func, &Rc::clone(env))?;
+            let args = eval_expressions(args, env)?;
+            apply_function(&func, &args)
+        }
     }
+}
+
+/// Apply the function with the given arguments, returning an error with the
+/// function cannot be applied. The function and its arguments are evaluated
+/// within a new enclosed environment to run in isolation.
+fn apply_function(
+    func: &Rc<object::Object>,
+    args: &[Rc<object::Object>],
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match &**func {
+        object::Object::Function(params, body, env) => {
+            let mut env = environment::Environment::new_enclosed_environment(&Rc::clone(env));
+
+            // Check that the number of parameters passed matches the expected
+            // number of arguments
+            if params.len() != args.len() {
+                return Err(error::EvaluationError::new(format!(
+                    "invalid number of arguments: expected={}, got={}",
+                    params.len(),
+                    args.len()
+                )));
+            }
+
+            // Store the parameter values
+            for (i, param) in params.iter().enumerate() {
+                env.set(param, args[i].clone());
+            }
+
+            let evaluated = eval_block_statement(body, &Rc::new(RefCell::new(env)))?;
+            unwrap_return_value(evaluated)
+        }
+        other => Err(error::EvaluationError::new(format!(
+            "not a function: {}",
+            other
+        ))),
+    }
+}
+
+/// Unwraps the result of an environment, which prevents the bubbling up of the
+/// return. This is necessary so that only the evaluation of the last-called
+/// function's body is stopped.
+fn unwrap_return_value(
+    object: Rc<object::Object>,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    if let object::Object::ReturnValue(val) = &*object {
+        Ok(Rc::clone(val))
+    } else {
+        Ok(object)
+    }
+}
+
+/// Evaluate a series of expressions, returning the results of the expressions
+/// by index in an array. Expressions are evaluated from left-to-right.
+fn eval_expressions(
+    expressions: &[ast::Expression],
+    env: &environment::Env,
+) -> Result<Vec<Rc<object::Object>>, error::EvaluationError> {
+    let mut result = Vec::new();
+
+    for expr in expressions {
+        let val = eval_expression(expr, env)?;
+        result.push(val);
+    }
+
+    Ok(result)
 }
 
 /// Evaluate identifier expression.
@@ -99,7 +173,7 @@ fn eval_block_statement(
         result = eval_statement(stmt, env)?;
 
         match *result {
-            object::Object::Return(_) => return Ok(result),
+            object::Object::ReturnValue(_) => return Ok(result),
             _ => continue,
         }
     }
@@ -231,7 +305,7 @@ fn eval_statement(
         }
         ast::Statement::Return(expr) => {
             let val = eval_expression(expr, env)?;
-            Ok(Rc::new(object::Object::Return(val)))
+            Ok(Rc::new(object::Object::ReturnValue(val)))
         }
     }
 }
@@ -249,7 +323,7 @@ fn eval_program(
 
         // Return early if encounter a return statement
         match *result {
-            object::Object::Return(_) => return Ok(result),
+            object::Object::ReturnValue(_) => return Ok(result),
             _ => continue,
         }
     }
@@ -402,5 +476,42 @@ mod tests {
             ("let a = 5; let b = a; let c = a + b + 5; c;", "15"),
         ];
         check_eval_case(&let_stmts);
+    }
+
+    #[test]
+    fn test_function_object() {
+        let func_objs = [("fn(x) { x + 2; }", "fn(x) {\n (x + 2) \n}")];
+        check_eval_case(&func_objs);
+    }
+
+    #[test]
+    fn test_function_application() {
+        let func_apps = [
+            ("let identity = fn(x) { x; }; identity(5);", "5"),
+            ("let identity = fn(x) { return x; }; identity(5);", "5"),
+            ("let double = fn(x) { x * 2; }; double(5);", "10"),
+            ("let add = fn(x, y) { x + y; }; add(5, 5);", "10"),
+            (
+                "let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));",
+                "20",
+            ),
+            ("fn(x) { x; }(5)", "5"),
+        ];
+        check_eval_case(&func_apps);
+    }
+
+    #[test]
+    fn test_closures() {
+        let input = [(
+            "
+            let newAdder = fn(x) {\
+                fn(y) { x + y };\
+            };\
+            \
+            let addTwo = newAdder(2);\
+            addTwo(2);",
+            "4",
+        )];
+        check_eval_case(&input);
     }
 }

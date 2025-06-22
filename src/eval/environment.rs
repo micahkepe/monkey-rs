@@ -9,9 +9,12 @@ use crate::eval::object::Object;
 pub type Env = Rc<RefCell<Environment>>;
 
 /// A wrapper around the stored values obtained during evaluation.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Environment {
     store: HashMap<String, Rc<Object>>,
+    /// Outer/ enclosing environment that is being extended by the Environment
+    /// instance.
+    outer: Option<Env>,
 }
 
 impl Environment {
@@ -19,12 +22,31 @@ impl Environment {
     pub fn new() -> Environment {
         Environment {
             store: HashMap::new(),
+            outer: None,
+        }
+    }
+
+    /// Constructs a new enclosed environment within the outer environment.
+    pub fn new_enclosed_environment(outer: &Env) -> Environment {
+        Environment {
+            store: HashMap::new(),
+            outer: Some(Rc::clone(outer)),
         }
     }
 
     /// Retrieves the value associated with a key, if it exists.
     pub fn get(&self, name: &str) -> Option<Rc<Object>> {
-        self.store.get(name).map(Rc::clone)
+        match self.store.get(name) {
+            Some(obj) => Some(Rc::clone(obj)),
+            None => {
+                // Check the enclosing environment as well, if it exists.
+                if let Some(outer) = &self.outer {
+                    outer.borrow().get(name)
+                } else {
+                    None
+                }
+            }
+        }
     }
 
     /// Sets the value for a given key. If the key is already present in the

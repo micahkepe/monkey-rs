@@ -175,7 +175,7 @@ impl fmt::Display for Literal {
 
 /// Format program statements into a string representation delimited by an
 /// empty string.
-fn display_statements(stmts: &[Statement]) -> String {
+pub fn display_statements(stmts: &[Statement]) -> String {
     stmts
         .iter()
         .map(|stmt| stmt.to_string())
@@ -184,7 +184,7 @@ fn display_statements(stmts: &[Statement]) -> String {
 }
 
 /// Format expressions array into a comma-separated string representation.
-fn display_expressions(expressions: &[Expression]) -> String {
+pub fn display_expressions(expressions: &[Expression]) -> String {
     expressions
         .iter()
         .map(|expr| expr.to_string())
