@@ -161,7 +161,8 @@ pub enum Literal {
     Integer(i32),
     /// A Boolean literal, e.g. `true` or `false`
     Boolean(bool),
-    // Add more literal variants here
+    /// A string literal, e.g. `\"Hello world!\"`
+    String(String),
 }
 
 impl fmt::Display for Literal {
@@ -169,6 +170,7 @@ impl fmt::Display for Literal {
         match self {
             Literal::Integer(int) => write!(f, "{}", int),
             Literal::Boolean(bool) => write!(f, "{}", bool),
+            Literal::String(str) => write!(f, "\"{}\"", str),
         }
     }
 }

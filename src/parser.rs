@@ -474,6 +474,7 @@ impl<'a> Parser<'a> {
             Some(token::Token::LParen) => self.parse_grouped_expression(),
             Some(token::Token::If) => self.parse_if_expression(),
             Some(token::Token::Function) => self.parse_function_literal(),
+            Some(token::Token::String(_)) => self.parse_string_literal(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
@@ -522,6 +523,16 @@ impl<'a> Parser<'a> {
         }
 
         left_expr
+    }
+
+    /// Parse the string literal from the current token.
+    fn parse_string_literal(&self) -> Result<ast::Expression, error::ParserError> {
+        match &self.current_token {
+            Some(ref str) => Ok(ast::Expression::Lit(ast::Literal::String(str.to_string()))),
+            None => Err(error::ParserError::new(
+                "expected string literal".to_string(),
+            )),
+        }
     }
 }
 
@@ -762,5 +773,11 @@ mod tests {
     fn test_call_expression_parsing() {
         let fn_call_cases = [("add(1, 2 * 3, 4 + 5)", "add(1, (2 * 3), (4 + 5))")];
         check_parse_test_cases(&fn_call_cases);
+    }
+
+    #[test]
+    fn test_string_literal_expression() {
+        let str_lit_cases = [("\"hello world\";", "\"hello world\"")];
+        check_parse_test_cases(&str_lit_cases);
     }
 }

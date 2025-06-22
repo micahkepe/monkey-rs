@@ -80,6 +80,10 @@ impl<'a> Lexer<'a> {
             Some(',') => token::Token::Comma,
             Some('{') => token::Token::LBrace,
             Some('}') => token::Token::RBrace,
+            Some('"') => {
+                let str = self.read_string();
+                return token::Token::String(str);
+            }
 
             // Multi-character tokens (e.g., identifier, integer, etc.)
             Some(c) if c.is_ascii_alphabetic() => {
@@ -145,6 +149,27 @@ impl<'a> Lexer<'a> {
             .expect("Invalid number encountered")
     }
 
+    /// Read a string value from the opening quotation character.
+    fn read_string(&mut self) -> String {
+        // Skip opening quotation
+        self.read_char();
+        let position = self.position;
+
+        while let Some(ch) = self.ch {
+            if ch == '"' {
+                break;
+            }
+            self.read_char();
+        }
+
+        let str = self.input[position..self.position].to_string();
+
+        // Move past closing quotation
+        self.read_char();
+
+        str
+    }
+
     /// Peeks the next character from the current position of the lexer.
     fn peek_char(&self) -> Option<char> {
         self.input[self.read_position..].chars().next()
@@ -155,6 +180,8 @@ impl<'a> Lexer<'a> {
 mod tests {
     use super::*;
 
+    /// Verify that the lexer produces the expected token stream from its
+    /// input.
     fn verify_expected_next_token(expected: &[token::Token], lexer: &mut Lexer) {
         for (i, expected_tk) in expected.iter().enumerate() {
             let token: token::Token = lexer.next_token();
@@ -209,7 +236,9 @@ mod tests {
             } \
             \
             10 == 10; \
-            10 != 9;";
+            10 != 9; \
+            \"foobar\" \
+            \"foo bar\"";
 
         let mut l = Lexer::new(input);
         let expected: Vec<token::Token> = vec![
@@ -286,6 +315,8 @@ mod tests {
             token::Token::NotEq,
             token::Token::Int(9),
             token::Token::Semicolon,
+            token::Token::String("foobar".to_string()),
+            token::Token::String("foo bar".to_string()),
             token::Token::Eof,
         ];
 

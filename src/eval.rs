@@ -49,6 +49,9 @@ fn eval_expression(
         ast::Expression::Lit(ast::Literal::Boolean(value)) => {
             Ok(Rc::new(object::Object::Boolean(*value)))
         }
+        ast::Expression::Lit(ast::Literal::String(value)) => {
+            Ok(Rc::new(object::Object::String(value.clone())))
+        }
         ast::Expression::Prefix(operator, expression) => {
             let right = eval_expression(expression, env)?;
             eval_prefix_expression(operator, &right)
@@ -512,6 +515,12 @@ mod tests {
             addTwo(2);",
             "4",
         )];
+        check_eval_case(&input);
+    }
+
+    #[test]
+    fn test_string_literal() {
+        let input = [("\"Hello World!\"", "Hello World!")];
         check_eval_case(&input);
     }
 }

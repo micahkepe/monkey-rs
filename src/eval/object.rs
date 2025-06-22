@@ -18,6 +18,8 @@ pub enum Object {
     Integer(i64),
     /// Represents a Boolean value.
     Boolean(bool),
+    /// Represent a string value.
+    String(String),
     /// Represents the absence of a value.
     Null,
     /// Represents a return value object
@@ -43,6 +45,7 @@ impl Display for Object {
                     ast::display_statements(body)
                 )
             }
+            Object::String(str) => write!(f, "{}", str),
         }
     }
 }
