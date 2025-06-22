@@ -198,9 +198,33 @@ fn eval_infix_expression(
         (object::Object::Boolean(left_b), object::Object::Boolean(right_b)) => {
             eval_boolean_infix_expression(operator, *left_b, *right_b)
         }
+        (object::Object::String(left_str), object::Object::String(right_str)) => {
+            eval_string_infix_expression(operator, left_str, right_str)
+        }
         _ => Err(error::EvaluationError::new(format!(
-            "type mismatch: {} {} {}",
+            "unknown operator: {} {} {}",
             left, operator, right
+        ))),
+    }
+}
+
+/// Evaluates the given string infix expression from the left and right
+/// expressions and the infix operator. Supported string operations are
+/// comparison and concatenation.
+fn eval_string_infix_expression(
+    operator: &token::Token,
+    left_str: &str,
+    right_str: &str,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match operator {
+        token::Token::Plus => Ok(Rc::new(object::Object::String(
+            left_str.to_string() + right_str,
+        ))),
+        token::Token::Eq => Ok(Rc::new(object::Object::Boolean(left_str == right_str))),
+        token::Token::NotEq => Ok(Rc::new(object::Object::Boolean(left_str != right_str))),
+        _ => Err(error::EvaluationError::new(format!(
+            "unknown operator: {} {} {}",
+            left_str, operator, right_str
         ))),
     }
 }
@@ -456,8 +480,8 @@ mod tests {
     #[test]
     fn test_error_handling() {
         let error_cases = [
-            ("5 + true;", "type mismatch: 5 + true"),
-            ("5 + true; 5;", "type mismatch: 5 + true"),
+            ("5 + true;", "unknown operator: 5 + true"),
+            ("5 + true; 5;", "unknown operator: 5 + true"),
             ("-true", "unknown operator: -true"),
             ("true + false;", "unknown operator: true + false"),
             ("5; true + false; 5", "unknown operator: true + false"),
@@ -466,6 +490,7 @@ mod tests {
                 "unknown operator: true + false",
             ),
             ("foobar", "identifier not found: foobar"),
+            ("\"Hello\" - \"World\"", "unknown operator: Hello - World"),
         ];
         check_eval_case(&error_cases);
     }
@@ -521,6 +546,12 @@ mod tests {
     #[test]
     fn test_string_literal() {
         let input = [("\"Hello World!\"", "Hello World!")];
+        check_eval_case(&input);
+    }
+
+    #[test]
+    fn test_string_concatenation() {
+        let input = [("\"Hello\" + \" \" + \"World!\"", "Hello World!")];
         check_eval_case(&input);
     }
 }
