@@ -26,7 +26,7 @@ pub enum Precdence {
     Index,
 }
 
-/// Returns the precedence of a given `Token` value.
+/// Returns the precedence of a given [`token::Token`] value.
 pub fn token_precedence(token: &token::Token) -> Precdence {
     match token {
         token::Token::Eq | token::Token::NotEq => Precdence::Equals,
@@ -34,7 +34,7 @@ pub fn token_precedence(token: &token::Token) -> Precdence {
         token::Token::Plus | token::Token::Minus => Precdence::Sum,
         token::Token::Slash | token::Token::Asterisk => Precdence::Product,
         token::Token::LParen => Precdence::Call,
-        token::Token::LBrace => Precdence::Index,
+        token::Token::LBracket => Precdence::Index,
         _ => Precdence::Lowest,
     }
 }

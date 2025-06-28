@@ -29,6 +29,8 @@ pub enum Object {
     Function(Vec<String>, ast::BlockStatement, environment::Env),
     /// A built-in function
     Builtin(Builtin),
+    /// An array, an ordered lits of elements of possibly different types.
+    Array(Vec<Rc<Object>>),
 }
 
 impl Display for Object {
@@ -49,6 +51,15 @@ impl Display for Object {
             }
             Object::String(str) => write!(f, "{}", str),
             Object::Builtin(builtin) => write!(f, "{}", builtin),
+            Object::Array(objects) => write!(
+                f,
+                "[{}]",
+                objects
+                    .iter()
+                    .map(|obj| obj.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
         }
     }
 }

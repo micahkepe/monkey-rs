@@ -80,6 +80,8 @@ impl<'a> Lexer<'a> {
             Some(',') => token::Token::Comma,
             Some('{') => token::Token::LBrace,
             Some('}') => token::Token::RBrace,
+            Some('[') => token::Token::LBracket,
+            Some(']') => token::Token::RBracket,
             Some('"') => {
                 let str = self.read_string();
                 return token::Token::String(str);
@@ -198,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_unichar_next_token() {
-        let input = "=+(){},;";
+        let input = "=+(){},;[]";
         let mut l = Lexer::new(input);
 
         let expected: Vec<token::Token> = vec![
@@ -210,6 +212,8 @@ mod tests {
             token::Token::RBrace,
             token::Token::Comma,
             token::Token::Semicolon,
+            token::Token::LBracket,
+            token::Token::RBracket,
             token::Token::Eof,
         ];
 
@@ -218,27 +222,28 @@ mod tests {
 
     #[test]
     fn mixed_chars() {
-        let input = "let five = 5; \
-                     let ten = 10; \
-                     \
-                     let add = fn(x, y) { \
-                         x + y; \
-                     }; \
-            \
-            let result = add(five, ten); \
-            !-/*5; \
+        let input = r#"let five = 5;
+                     let ten = 10;
+
+                     let add = fn(x, y) {
+                         x + y;
+                     };
+
+            let result = add(five, ten);
+            !-/*5;
             5 < 10 > 5;
-            \
-            if (5 < 10) { \
-                return true; \
-            } else { \
-                return false; \
-            } \
-            \
-            10 == 10; \
-            10 != 9; \
-            \"foobar\" \
-            \"foo bar\"";
+
+            if (5 < 10) {
+                return true;
+            } else {
+                return false;
+            }
+
+            10 == 10;
+            10 != 9;
+            "foobar"
+            "foo bar"
+            [1, 2];"#;
 
         let mut l = Lexer::new(input);
         let expected: Vec<token::Token> = vec![
@@ -317,6 +322,12 @@ mod tests {
             token::Token::Semicolon,
             token::Token::String("foobar".to_string()),
             token::Token::String("foo bar".to_string()),
+            token::Token::LBracket,
+            token::Token::Int(1),
+            token::Token::Comma,
+            token::Token::Int(2),
+            token::Token::RBracket,
+            token::Token::Semicolon,
             token::Token::Eof,
         ];
 

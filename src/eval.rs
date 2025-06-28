@@ -57,6 +57,10 @@ fn eval_expression(
         ast::Expression::Lit(ast::Literal::String(value)) => {
             Ok(Rc::new(object::Object::String(value.clone())))
         }
+        ast::Expression::Lit(ast::Literal::Array(arr)) => {
+            let list = eval_expressions(arr, &Rc::clone(env))?;
+            Ok(Rc::new(object::Object::Array(list)))
+        }
         ast::Expression::Prefix(operator, expression) => {
             let right = eval_expression(expression, env)?;
             eval_prefix_expression(operator, &right)

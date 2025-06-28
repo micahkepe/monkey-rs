@@ -391,36 +391,8 @@ impl<'a> Parser<'a> {
         &mut self,
         expr: ast::Expression,
     ) -> Result<ast::Expression, error::ParserError> {
-        let args = self.parse_call_arguments()?;
+        let args = self.parse_expression_list(&token::Token::RParen)?;
         Ok(ast::Expression::Call(Box::new(expr), args))
-    }
-
-    /// Parse the function call arguments from the current token.
-    fn parse_call_arguments(&mut self) -> Result<Vec<ast::Expression>, error::ParserError> {
-        let mut args = Vec::new();
-
-        // Early exit in case of empty arguments list
-        if self.peek_token_is(&token::Token::RParen) {
-            self.next_token();
-            return Ok(args);
-        }
-
-        // Advance past opening left parenthesis
-        self.next_token();
-
-        // Parse first argument expression
-        args.push(self.parse_expression(precedence::Precdence::Lowest)?);
-
-        while self.peek_token_is(&token::Token::Comma) {
-            self.next_token();
-            self.next_token();
-            args.push(self.parse_expression(precedence::Precdence::Lowest)?);
-        }
-
-        // Check for closing right parenthesis
-        self.expect_peek_token(&token::Token::RParen)?;
-
-        Ok(args)
     }
 
     /// Attempts to parse the current token as a prefix expression.
@@ -475,6 +447,7 @@ impl<'a> Parser<'a> {
             Some(token::Token::If) => self.parse_if_expression(),
             Some(token::Token::Function) => self.parse_function_literal(),
             Some(token::Token::String(_)) => self.parse_string_literal(),
+            Some(token::Token::LBracket) => self.parse_array_literal(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
@@ -533,6 +506,39 @@ impl<'a> Parser<'a> {
                 "expected string literal".to_string(),
             )),
         }
+    }
+
+    /// Parse the array literal from the current token.
+    fn parse_array_literal(&mut self) -> Result<ast::Expression, error::ParserError> {
+        let array = self.parse_expression_list(&token::Token::RBracket)?;
+        Ok(ast::Expression::Lit(ast::Literal::Array(array)))
+    }
+
+    /// Parse a comma-separated list of expressions until the ending token is
+    /// the next token.
+    fn parse_expression_list(
+        &mut self,
+        end: &token::Token,
+    ) -> Result<Vec<ast::Expression>, error::ParserError> {
+        let mut list = Vec::new();
+
+        if self.peek_token_is(end) {
+            self.next_token();
+            return Ok(list);
+        }
+
+        self.next_token();
+        list.push(self.parse_expression(precedence::Precdence::Lowest)?);
+
+        while self.peek_token_is(&token::Token::Comma) {
+            self.next_token();
+            self.next_token();
+            list.push(self.parse_expression(precedence::Precdence::Lowest)?);
+        }
+
+        self.expect_peek_token(end)?;
+
+        Ok(list)
     }
 }
 
@@ -779,5 +785,11 @@ mod tests {
     fn test_string_literal_expression() {
         let str_lit_cases = [("\"hello world\";", "\"hello world\"")];
         check_parse_test_cases(&str_lit_cases);
+    }
+
+    #[test]
+    fn test_parsing_array_literals() {
+        let case = [("[1, 2 * 2, 3 + 3]", "[1, (2 * 2), (3 + 3)]")];
+        check_parse_test_cases(&case);
     }
 }

@@ -49,14 +49,21 @@ pub enum Token {
     Comma,
     /// Semicolon `;`
     Semicolon,
+
     /// Left parenthesis `(`
     LParen,
     /// Right parenthesis `)`
     RParen,
-    /// Left square brace `[`
+
+    /// Left curly brace `{{`
     LBrace,
-    /// Right square brace `]`
+    /// Right curly bracket `}}`
     RBrace,
+
+    /// Left square bracket `[`
+    LBracket,
+    /// Right square bracket `]`
+    RBracket,
 
     /* Keywords */
     /// `fn` keyword
@@ -106,6 +113,8 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "ELSE"),
             Token::Return => write!(f, "RETURN"),
             Token::String(str) => write!(f, "{}", str),
+            Token::LBracket => write!(f, "["),
+            Token::RBracket => write!(f, "]"),
         }
     }
 }

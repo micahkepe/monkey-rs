@@ -163,6 +163,8 @@ pub enum Literal {
     Boolean(bool),
     /// A string literal, e.g. `\"Hello world!\"`
     String(String),
+    /// An array literal, e.g. `\[1, 2, 3 + 3, fn(x) { x }, add(2, 2)\]`
+    Array(Vec<Expression>),
 }
 
 impl fmt::Display for Literal {
@@ -171,6 +173,7 @@ impl fmt::Display for Literal {
             Literal::Integer(int) => write!(f, "{}", int),
             Literal::Boolean(bool) => write!(f, "{}", bool),
             Literal::String(str) => write!(f, "\"{}\"", str),
+            Literal::Array(expressions) => write!(f, "[{}]", display_expressions(expressions)),
         }
     }
 }
