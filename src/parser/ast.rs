@@ -112,6 +112,16 @@ pub enum Expression {
     /// <expression>(<comma-separated expressions>)
     /// ```
     Call(Box<Expression>, Vec<Expression>),
+
+    /// Index expression. Abstractly, an index expression can be represented as
+    /// follows:
+    /// ```ebnf
+    /// <expression>\[<expression>\]
+    /// ```
+    ///
+    /// The left expression is the object being accessed, and the right index
+    /// expression is an expression that semantic must produce an integer.
+    Index(Box<Expression>, Box<Expression>),
 }
 
 impl fmt::Display for Expression {
@@ -150,6 +160,7 @@ impl fmt::Display for Expression {
             Expression::Call(function_expr, arguments) => {
                 write!(f, "{}({})", function_expr, display_expressions(arguments))
             }
+            Expression::Index(left, index) => write!(f, "({}[{}])", left, index),
         }
     }
 }

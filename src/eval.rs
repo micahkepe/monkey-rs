@@ -92,6 +92,43 @@ fn eval_expression(
             let args = eval_expressions(args, env)?;
             apply_function(&func, &args)
         }
+        ast::Expression::Index(left, index) => {
+            // Evaluate both expressions first before evaluating indexing.
+            let left_expr = eval_expression(left, &Rc::clone(env))?;
+            let index_expr = eval_expression(index, &Rc::clone(env))?;
+            eval_index_expression(&left_expr, &index_expr)
+        }
+    }
+}
+
+/// Evaluate the index expression with the given left and index expressions.
+fn eval_index_expression(
+    left_expr: &Rc<object::Object>,
+    index_expr: &Rc<object::Object>,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    match (&**left_expr, &**index_expr) {
+        (object::Object::Array(arr), object::Object::Integer(idx)) => {
+            eval_array_index_expression(arr, *idx)
+        }
+        _ => Err(error::EvaluationError::new(format!(
+            "index operator not supported: {}",
+            index_expr
+        ))),
+    }
+}
+
+/// Evaluate the array index expression from the given array object and index
+fn eval_array_index_expression(
+    arr: &[Rc<object::Object>],
+    idx: i64,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    let max = (arr.len() as i64) - 1;
+
+    if idx < 0 || idx > max {
+        Ok(Rc::new(object::Object::Null))
+    } else {
+        let obj = arr.get(idx as usize).expect("Index out of bounds");
+        Ok(Rc::clone(obj))
     }
 }
 
@@ -581,5 +618,34 @@ mod tests {
             ),
         ];
         check_eval_case(&cases);
+    }
+
+    #[test]
+    fn test_array_literals() {
+        let cases = [("[1, 2 * 2, 3 + 3]", "[1, 4, 6]")];
+        check_eval_case(&cases);
+    }
+
+    #[test]
+    fn test_array_index_expressions() {
+        let index_cases = [
+            ("[1, 2, 3][0]", "1"),
+            ("[1, 2, 3][1]", "2"),
+            ("[1, 2, 3][2]", "3"),
+            ("let i = 0; [1][i];", "1"),
+            ("[1, 2, 3][1 + 1];", "3"),
+            ("let myArray = [1, 2, 3]; myArray[2];", "3"),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                "6",
+            ),
+            (
+                "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+                "2",
+            ),
+            ("[1, 2, 3][3]", "null"),
+            ("[1, 2, 3][-1]", "null"),
+        ];
+        check_eval_case(&index_cases);
     }
 }

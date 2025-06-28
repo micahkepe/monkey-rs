@@ -485,6 +485,11 @@ impl<'a> Parser<'a> {
                         Err(e) => return Err(e),
                     };
                 }
+                Some(token::Token::LBracket) => {
+                    self.next_token();
+                    let expr = left_expr.unwrap();
+                    left_expr = self.parse_index_expresssion(expr);
+                }
                 Some(_) => {
                     return Err(error::ParserError::new(format!(
                         "No infix parse function for {:?}",
@@ -539,6 +544,23 @@ impl<'a> Parser<'a> {
         self.expect_peek_token(end)?;
 
         Ok(list)
+    }
+
+    /// Parse the index expression from the current token.
+    fn parse_index_expresssion(
+        &mut self,
+        left_expr: ast::Expression,
+    ) -> Result<ast::Expression, error::ParserError> {
+        self.next_token();
+
+        let index_expr = self.parse_expression(precedence::Precdence::Lowest)?;
+
+        self.expect_peek_token(&token::Token::RBracket)?;
+
+        Ok(ast::Expression::Index(
+            Box::new(left_expr),
+            Box::new(index_expr),
+        ))
     }
 }
 
@@ -743,6 +765,14 @@ mod tests {
                 "add(a + b + c * d / f + g)",
                 "add((((a + b) + ((c * d) / f)) + g))",
             ),
+            (
+                "a * [1, 2, 3, 4][b * c] * d",
+                "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            ),
+            (
+                "add(a * b[2], b[1], 2 * [1, 2][1])",
+                "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+            ),
         ];
         check_parse_test_cases(&precedence_tests);
     }
@@ -790,6 +820,12 @@ mod tests {
     #[test]
     fn test_parsing_array_literals() {
         let case = [("[1, 2 * 2, 3 + 3]", "[1, (2 * 2), (3 + 3)]")];
+        check_parse_test_cases(&case);
+    }
+
+    #[test]
+    fn test_parsing_index_expressions() {
+        let case = [("myArray[1 + 1]", "(myArray[(1 + 1)])")];
         check_parse_test_cases(&case);
     }
 }
