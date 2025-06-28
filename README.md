@@ -19,3 +19,8 @@ language from Thorsten Ball's [Writing An Interpreter In Go](https://interpreter
 - [ ] Extending the Interpreter
 - [ ] Macro System ("The Lost Chapter")
 - [ ] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
+
+## License
+
+This repository is licensed under the MIT License. See [LICENSE](./LICENSE) for
+more details.
