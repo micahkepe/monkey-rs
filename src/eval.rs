@@ -4,9 +4,14 @@
 Evaluates a parsed Monkey program using a tree-walking evaluation strategy,
 interpreting the parsed AST representation of the source code "on the fly."
 */
+/* Modules */
+pub(crate) mod builtin;
 pub(crate) mod environment;
 pub mod error;
 pub(crate) mod object;
+
+/* Re-exports */
+pub use builtin::Builtin;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -115,6 +120,7 @@ fn apply_function(
             let evaluated = eval_block_statement(body, &Rc::new(RefCell::new(env)))?;
             unwrap_return_value(evaluated)
         }
+        object::Object::Builtin(func) => func.apply(args),
         other => Err(error::EvaluationError::new(format!(
             "not a function: {}",
             other
@@ -158,10 +164,13 @@ fn eval_identifier(
 ) -> Result<Rc<object::Object>, error::EvaluationError> {
     match env.borrow().get(ident) {
         Some(obj) => Ok(obj.clone()),
-        None => Err(error::EvaluationError::new(format!(
-            "identifier not found: {}",
-            ident
-        ))),
+        None => match Builtin::lookup(ident) {
+            Some(obj) => Ok(Rc::new(obj)),
+            None => Err(error::EvaluationError::new(format!(
+                "identifier not found: {}",
+                ident
+            ))),
+        },
     }
 }
 
@@ -553,5 +562,20 @@ mod tests {
     fn test_string_concatenation() {
         let input = [("\"Hello\" + \" \" + \"World!\"", "Hello World!")];
         check_eval_case(&input);
+    }
+
+    #[test]
+    fn test_builtin_functions() {
+        let cases = [
+            (r#"len("")"#, "0"),
+            (r#"len("four")"#, "4"),
+            (r#"len("hello world")"#, "11"),
+            ("len(1)", "argument to `len` not supported, got 1"),
+            (
+                r#"len("one", "two")"#,
+                "invalid number of arguments: expected=1, got=2",
+            ),
+        ];
+        check_eval_case(&cases);
     }
 }

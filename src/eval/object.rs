@@ -7,7 +7,7 @@ programming language.
 use std::fmt::Display;
 use std::rc::Rc;
 
-use crate::eval::environment;
+use crate::eval::{environment, Builtin};
 use crate::parser::ast;
 
 /// Represents objects in Monkey that can represent the values the source AST
@@ -27,6 +27,8 @@ pub enum Object {
     /// Represents a function literal with given parameters, a body block
     /// statement, and its environment/context.
     Function(Vec<String>, ast::BlockStatement, environment::Env),
+    /// A built-in function
+    Builtin(Builtin),
 }
 
 impl Display for Object {
@@ -46,6 +48,7 @@ impl Display for Object {
                 )
             }
             Object::String(str) => write!(f, "{}", str),
+            Object::Builtin(builtin) => write!(f, "{}", builtin),
         }
     }
 }

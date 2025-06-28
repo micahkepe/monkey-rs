@@ -3,6 +3,11 @@ name = "monkey-rs"
 version = "0.1.0"
 authors = ["Micah Kepe <micahkepe@gmail.com>"]
 edition = "2021"
+homepage = "https://github.com/micahkepe/monkey-rs"
+repository = "https://github.com/micahkepe/monkey-rs"
+description = "Monkey programming language interpretter."
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 rustyline = "16.0.0"
