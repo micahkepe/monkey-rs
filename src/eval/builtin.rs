@@ -10,12 +10,26 @@ use super::object;
 pub enum Builtin {
     /// Return the length of an iterable Monkey object.
     Len,
+    /// Return the first element of a given array.
+    First,
+    /// Return the last element of a given array.
+    Last,
+    /// Return a new array containing all the elements of the array passed as
+    /// argument, except for the first one
+    Rest,
+    /// Allocates a new array with the same elements as the array passed as
+    /// argument with the addition of the new, pushed element.
+    Push,
 }
 
 impl fmt::Display for Builtin {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Builtin::Len => write!(f, "len"),
+            Builtin::First => write!(f, "first"),
+            Builtin::Last => write!(f, "last"),
+            Builtin::Rest => write!(f, "rest"),
+            Builtin::Push => write!(f, "push"),
         }
     }
 }
@@ -26,6 +40,10 @@ impl Builtin {
     pub fn lookup(name: &str) -> Option<object::Object> {
         match name {
             "len" => Some(object::Object::Builtin(Builtin::Len)),
+            "first" => Some(object::Object::Builtin(Builtin::First)),
+            "last" => Some(object::Object::Builtin(Builtin::Last)),
+            "rest" => Some(object::Object::Builtin(Builtin::Rest)),
+            "push" => Some(object::Object::Builtin(Builtin::Push)),
             _ => None,
         }
     }
@@ -43,8 +61,73 @@ impl Builtin {
                     object::Object::String(str) => {
                         Ok(Rc::new(object::Object::Integer(str.len() as i64)))
                     }
+                    object::Object::Array(arr) => {
+                        Ok(Rc::new(object::Object::Integer(arr.len() as i64)))
+                    }
                     other => Err(error::EvaluationError::new(format!(
                         "argument to `len` not supported, got {}",
+                        other
+                    ))),
+                }
+            }
+            Builtin::First => {
+                check_args_count(1, args.len())?;
+
+                match &*args[0] {
+                    object::Object::Array(arr) => match arr.first() {
+                        Some(element) => Ok(Rc::clone(element)),
+                        None => Ok(Rc::new(object::Object::Null)),
+                    },
+                    other => Err(error::EvaluationError::new(format!(
+                        "argument to `first` must be ARRAY, got {}",
+                        other
+                    ))),
+                }
+            }
+            Builtin::Last => {
+                check_args_count(1, args.len())?;
+
+                match &*args[0] {
+                    object::Object::Array(arr) => match arr.last() {
+                        Some(element) => Ok(Rc::clone(element)),
+                        None => Ok(Rc::new(object::Object::Null)),
+                    },
+                    other => Err(error::EvaluationError::new(format!(
+                        "argument to `last` must be ARRAY, got {}",
+                        other
+                    ))),
+                }
+            }
+            Builtin::Rest => {
+                check_args_count(1, args.len())?;
+
+                match &*args[0] {
+                    object::Object::Array(arr) => {
+                        let length = arr.len();
+                        if length > 0 {
+                            let new_elements = arr[1..].to_vec();
+                            Ok(Rc::new(object::Object::Array(new_elements)))
+                        } else {
+                            Ok(Rc::new(object::Object::Null))
+                        }
+                    }
+                    other => Err(error::EvaluationError::new(format!(
+                        "argument to `rest` must be ARRAY, got {}",
+                        other
+                    ))),
+                }
+            }
+            Builtin::Push => {
+                check_args_count(2, args.len())?;
+
+                match &*args[0] {
+                    object::Object::Array(arr) => {
+                        let mut new_elements = arr.clone();
+                        new_elements.push(Rc::clone(&args[1]));
+                        Ok(Rc::new(object::Object::Array(new_elements)))
+                    }
+                    other => Err(error::EvaluationError::new(format!(
+                        "argument to `push` must be ARRAY, got {}",
                         other
                     ))),
                 }
@@ -58,7 +141,7 @@ fn check_args_count(expected: usize, actual: usize) -> Result<(), error::Evaluat
     match expected == actual {
         true => Ok(()),
         false => Err(error::EvaluationError::new(format!(
-            "invalid number of arguments: expected={}, got={}",
+            "wrong number of arguments: expected={}, got={}",
             expected, actual
         ))),
     }

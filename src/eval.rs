@@ -614,8 +614,9 @@ mod tests {
             ("len(1)", "argument to `len` not supported, got 1"),
             (
                 r#"len("one", "two")"#,
-                "invalid number of arguments: expected=1, got=2",
+                "wrong number of arguments: expected=1, got=2",
             ),
+            (r#"len([])"#, "0"),
         ];
         check_eval_case(&cases);
     }
@@ -645,6 +646,16 @@ mod tests {
             ),
             ("[1, 2, 3][3]", "null"),
             ("[1, 2, 3][-1]", "null"),
+            ("first([1, 2, 3])", "1"),
+            ("first([])", "null"),
+            ("first(1)", "argument to `first` must be ARRAY, got 1"),
+            ("last([1, 2, 3])", "3"),
+            ("last([])", "null"),
+            ("last(1)", "argument to `last` must be ARRAY, got 1"),
+            ("rest([1, 2, 3])", "[2, 3]"),
+            ("rest([])", "null"),
+            ("push([], 1)", "[1]"),
+            ("push(1, 1)", "argument to `push` must be ARRAY, got 1"),
         ];
         check_eval_case(&index_cases);
     }
