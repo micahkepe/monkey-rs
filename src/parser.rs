@@ -448,6 +448,7 @@ impl<'a> Parser<'a> {
             Some(token::Token::Function) => self.parse_function_literal(),
             Some(token::Token::String(_)) => self.parse_string_literal(),
             Some(token::Token::LBracket) => self.parse_array_literal(),
+            Some(token::Token::LBrace) => self.parse_hash_literal(),
             _ => Err(error::ParserError::new(format!(
                 "No prefix parse function for {:?}",
                 self.current_token
@@ -561,6 +562,31 @@ impl<'a> Parser<'a> {
             Box::new(left_expr),
             Box::new(index_expr),
         ))
+    }
+
+    /// Parse the hash literal expression from the current token.
+    fn parse_hash_literal(&mut self) -> Result<ast::Expression, error::ParserError> {
+        let mut hash = Vec::new();
+        while !self.peek_token_is(&token::Token::RBrace) {
+            self.next_token();
+
+            let key = self.parse_expression(precedence::Precdence::Lowest)?;
+
+            self.expect_peek_token(&token::Token::Colon)?;
+            self.next_token();
+
+            let value = self.parse_expression(precedence::Precdence::Lowest)?;
+
+            hash.push((key, value));
+
+            if !self.peek_token_is(&token::Token::RBrace) {
+                self.expect_peek_token(&token::Token::Comma)?;
+            }
+        }
+
+        self.expect_peek_token(&token::Token::RBrace)?;
+
+        Ok(ast::Expression::Lit(ast::Literal::Hash(hash)))
     }
 }
 
@@ -701,7 +727,6 @@ mod tests {
 
     #[test]
     fn test_parsing_prefix_expressions() {
-        // test_case[i] = (input str, expected formatted parsed representation)
         let prefix_cases = [
             ("!5;", "(!5)"),
             ("-15;", "(-15)"),
@@ -826,6 +851,42 @@ mod tests {
     #[test]
     fn test_parsing_index_expressions() {
         let case = [("myArray[1 + 1]", "(myArray[(1 + 1)])")];
+        check_parse_test_cases(&case);
+    }
+
+    #[test]
+    fn test_parsing_hash_literals_string_keys() {
+        let case = [(
+            r#"{"one": 1, "two": 2, "three": 3}"#,
+            r#"{"one": 1, "two": 2, "three": 3}"#,
+        )];
+        check_parse_test_cases(&case);
+    }
+
+    #[test]
+    fn test_parsing_empty_hash_literal() {
+        let case = [(r#"{}"#, r#"{}"#)];
+        check_parse_test_cases(&case);
+    }
+
+    #[test]
+    fn test_parsing_hash_literal_boolean_keys() {
+        let case = [(r#"{true: 1, false: 2}"#, r#"{true: 1, false: 2}"#)];
+        check_parse_test_cases(&case);
+    }
+
+    #[test]
+    fn test_parsing_hash_literal_integer_keys() {
+        let case = [(r#"{1: 1, 2: 2, 3: 3}"#, r#"{1: 1, 2: 2, 3: 3}"#)];
+        check_parse_test_cases(&case);
+    }
+
+    #[test]
+    fn test_parsing_hash_literals_with_expressions() {
+        let case = [(
+            r#"{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}"#,
+            r#"{"one": (0 + 1), "two": (10 - 8), "three": (15 / 5)}"#,
+        )];
         check_parse_test_cases(&case);
     }
 }

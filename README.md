@@ -1,5 +1,7 @@
 # monkey-rs 🦀
 
+[ ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/micahkepe/monkey-rs/rust.yml?logo=github)](https://github.com/micahkepe/monkey-rs/actions)
+
 <div align="center">
     <img src="./assets/img/monkey-rs.png" width="25%" alt="monkey-rs logo"/>
 </div>

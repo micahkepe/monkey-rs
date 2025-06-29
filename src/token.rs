@@ -49,6 +49,8 @@ pub enum Token {
     Comma,
     /// Semicolon `;`
     Semicolon,
+    /// Colon `:`
+    Colon,
 
     /// Left parenthesis `(`
     LParen,
@@ -115,6 +117,7 @@ impl fmt::Display for Token {
             Token::String(str) => write!(f, "{}", str),
             Token::LBracket => write!(f, "["),
             Token::RBracket => write!(f, "]"),
+            Token::Colon => write!(f, ":"),
         }
     }
 }

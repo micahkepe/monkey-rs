@@ -82,6 +82,7 @@ impl<'a> Lexer<'a> {
             Some('}') => token::Token::RBrace,
             Some('[') => token::Token::LBracket,
             Some(']') => token::Token::RBracket,
+            Some(':') => token::Token::Colon,
             Some('"') => {
                 let str = self.read_string();
                 return token::Token::String(str);
@@ -243,7 +244,8 @@ mod tests {
             10 != 9;
             "foobar"
             "foo bar"
-            [1, 2];"#;
+            [1, 2];
+            {"foo": "bar"}"#;
 
         let mut l = Lexer::new(input);
         let expected: Vec<token::Token> = vec![
@@ -328,6 +330,11 @@ mod tests {
             token::Token::Int(2),
             token::Token::RBracket,
             token::Token::Semicolon,
+            token::Token::LBrace,
+            token::Token::String("foo".to_string()),
+            token::Token::Colon,
+            token::Token::String("bar".to_string()),
+            token::Token::RBrace,
             token::Token::Eof,
         ];
 

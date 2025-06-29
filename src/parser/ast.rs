@@ -176,6 +176,8 @@ pub enum Literal {
     String(String),
     /// An array literal, e.g. `\[1, 2, 3 + 3, fn(x) { x }, add(2, 2)\]`
     Array(Vec<Expression>),
+    /// A hash literal, e.g. `{"name": "Jimmy", "age": 72, "band": "Led Zeppelin"} `
+    Hash(Vec<(Expression, Expression)>),
 }
 
 impl fmt::Display for Literal {
@@ -185,6 +187,14 @@ impl fmt::Display for Literal {
             Literal::Boolean(bool) => write!(f, "{}", bool),
             Literal::String(str) => write!(f, "\"{}\"", str),
             Literal::Array(expressions) => write!(f, "[{}]", display_expressions(expressions)),
+            Literal::Hash(entries) => {
+                let hash = entries
+                    .iter()
+                    .map(|(k, v)| format!("{}: {}", k, v))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "{{{}}}", hash)
+            }
         }
     }
 }

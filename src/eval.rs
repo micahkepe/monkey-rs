@@ -98,6 +98,7 @@ fn eval_expression(
             let index_expr = eval_expression(index, &Rc::clone(env))?;
             eval_index_expression(&left_expr, &index_expr)
         }
+        _ => unimplemented!(),
     }
 }
 
