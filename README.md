@@ -18,7 +18,7 @@ language from Thorsten Ball's [Writing An Interpreter In Go](https://interpreter
 - [x] Lexer
 - [x] Parser
 - [x] Evaluation
-- [ ] Extending the Interpreter
+- [x] Extending the Interpreter
 - [ ] Macro System ("The Lost Chapter")
 - [ ] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
 
