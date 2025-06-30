@@ -13,7 +13,7 @@ pub(crate) mod object;
 /* Re-exports */
 pub use builtin::Builtin;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{parser::ast, token};
 
@@ -61,6 +61,10 @@ fn eval_expression(
             let list = eval_expressions(arr, &Rc::clone(env))?;
             Ok(Rc::new(object::Object::Array(list)))
         }
+        ast::Expression::Lit(ast::Literal::Hash(entries)) => {
+            let hash = eval_hash_literal(entries, &Rc::clone(env))?;
+            Ok(Rc::new(object::Object::Hash(hash)))
+        }
         ast::Expression::Prefix(operator, expression) => {
             let right = eval_expression(expression, env)?;
             eval_prefix_expression(operator, &right)
@@ -98,8 +102,36 @@ fn eval_expression(
             let index_expr = eval_expression(index, &Rc::clone(env))?;
             eval_index_expression(&left_expr, &index_expr)
         }
-        _ => unimplemented!(),
     }
+}
+
+/// Evaluate the hash literal expression with the given (key, value) expression
+/// entries.
+fn eval_hash_literal(
+    entries: &[(ast::Expression, ast::Expression)],
+    env: &environment::Env,
+) -> Result<HashMap<Rc<object::HashableObject>, Rc<object::Object>>, error::EvaluationError> {
+    let mut hash = HashMap::new();
+
+    for (key_expr, value_expr) in entries {
+        let key_obj = eval_expression(key_expr, env)?;
+
+        // Verify that key object is hashable
+        let hash_key = match key_obj.as_hashable() {
+            Some(k) => Rc::new(k),
+            None => {
+                return Err(error::EvaluationError::new(format!(
+                    "unusable as hash key: {}",
+                    key_obj
+                )))
+            }
+        };
+
+        let value_obj = eval_expression(value_expr, env)?;
+        hash.insert(hash_key, value_obj);
+    }
+
+    Ok(hash)
 }
 
 /// Evaluate the index expression with the given left and index expressions.
@@ -111,10 +143,33 @@ fn eval_index_expression(
         (object::Object::Array(arr), object::Object::Integer(idx)) => {
             eval_array_index_expression(arr, *idx)
         }
+        (object::Object::Hash(hash), key) => eval_hash_index_expression(hash, key),
         _ => Err(error::EvaluationError::new(format!(
             "index operator not supported: {}",
             index_expr
         ))),
+    }
+}
+
+/// Evaluate the hash index expression with the given hash object and index
+/// expression.
+fn eval_hash_index_expression(
+    hash: &HashMap<Rc<object::HashableObject>, Rc<object::Object>>,
+    key: &object::Object,
+) -> Result<Rc<object::Object>, error::EvaluationError> {
+    let hash_key = match key.as_hashable() {
+        Some(k) => &Rc::new(k),
+        None => {
+            return Err(error::EvaluationError::new(format!(
+                "unusable as hash key: {}",
+                key
+            )))
+        }
+    };
+
+    match hash.get(hash_key) {
+        Some(val) => Ok(Rc::clone(val)),
+        None => Ok(Rc::new(object::Object::Null)),
     }
 }
 
@@ -659,5 +714,89 @@ mod tests {
             ("push(1, 1)", "argument to `push` must be ARRAY, got 1"),
         ];
         check_eval_case(&index_cases);
+    }
+
+    #[test]
+    fn test_hash_literals() {
+        let input = r#"
+        let two = "two";
+        {
+            "one": 10 - 9,
+            two: 1 + 1,
+            "thr" + "ee": 6 / 2,
+            4: 4,
+            true: 5,
+            false: 6
+        }
+    "#;
+
+        let env: environment::Env = Rc::new(RefCell::new(Default::default()));
+        let node = parse(input).expect("failed to parse input");
+        let result = eval(node, &env).expect("evaluation failed");
+
+        let expected: Vec<(object::HashableObject, object::Object)> = vec![
+            (
+                object::HashableObject::String("one".to_string()),
+                object::Object::Integer(1),
+            ),
+            (
+                object::HashableObject::String("two".to_string()),
+                object::Object::Integer(2),
+            ),
+            (
+                object::HashableObject::String("three".to_string()),
+                object::Object::Integer(3),
+            ),
+            (
+                object::HashableObject::Integer(4),
+                object::Object::Integer(4),
+            ),
+            (
+                object::HashableObject::Boolean(true),
+                object::Object::Integer(5),
+            ),
+            (
+                object::HashableObject::Boolean(false),
+                object::Object::Integer(6),
+            ),
+        ];
+
+        match &*result {
+            object::Object::Hash(actual_map) => {
+                assert_eq!(actual_map.len(), expected.len());
+
+                for (expected_key, expected_val) in expected {
+                    let key_rc = Rc::new(expected_key);
+                    let actual_val = actual_map.get(&key_rc);
+                    assert!(
+                        actual_val.is_some(),
+                        "expected key {:?} not found in hash",
+                        key_rc
+                    );
+
+                    let actual_val = actual_val.unwrap();
+                    assert_eq!(
+                        &**actual_val, &expected_val,
+                        "value mismatch for key {:?}",
+                        key_rc
+                    );
+                }
+            }
+            other => panic!("expected Object::Hash, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_hash_index_expressions() {
+        let cases = [
+            (r#"{"foo": 5}["foo"]"#, "5"),
+            (r#"{"foo": 5}["bar"]"#, "null"),
+            (r#"let key = "foo"; {"foo": 5}[key]"#, "5"),
+            (r#"{}["foo"]"#, "null"),
+            (r#"{5: 5}[5]"#, "5"),
+            (r#"{true: 5}[true]"#, "5"),
+            (r#"{false: 5}[false]"#, "5"),
+        ];
+        check_eval_case(&cases);
     }
 }
