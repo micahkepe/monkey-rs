@@ -20,6 +20,8 @@ pub enum Builtin {
     /// Allocates a new array with the same elements as the array passed as
     /// argument with the addition of the new, pushed element.
     Push,
+    /// Prints the given arguments to STDOUT
+    Puts,
 }
 
 impl fmt::Display for Builtin {
@@ -30,6 +32,7 @@ impl fmt::Display for Builtin {
             Builtin::Last => write!(f, "last"),
             Builtin::Rest => write!(f, "rest"),
             Builtin::Push => write!(f, "push"),
+            Builtin::Puts => write!(f, "puts"),
         }
     }
 }
@@ -44,6 +47,7 @@ impl Builtin {
             "last" => Some(object::Object::Builtin(Builtin::Last)),
             "rest" => Some(object::Object::Builtin(Builtin::Rest)),
             "push" => Some(object::Object::Builtin(Builtin::Push)),
+            "puts" => Some(object::Object::Builtin(Builtin::Puts)),
             _ => None,
         }
     }
@@ -131,6 +135,12 @@ impl Builtin {
                         other
                     ))),
                 }
+            }
+            Builtin::Puts => {
+                args.iter().for_each(|obj| println!("{}", obj));
+
+                // Puts returns a null value
+                Ok(Rc::new(object::Object::Null))
             }
         }
     }
