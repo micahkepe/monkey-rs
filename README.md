@@ -1,6 +1,6 @@
 # monkey-rs 🦀
 
-[ ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/micahkepe/monkey-rs/rust.yml?logo=github)](https://github.com/micahkepe/monkey-rs/actions)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/micahkepe/monkey-rs/rust.yml?logo=github)](https://github.com/micahkepe/monkey-rs/actions)
 
 <div align="center">
     <img src="./assets/img/monkey-rs.png" width="25%" alt="monkey-rs logo"/>
@@ -13,14 +13,46 @@ language from Thorsten Ball's [Writing An Interpreter In Go](https://interpreter
 > magnificent, elegant, fascinating and funny creatures. Exactly like our
 > interpreter"_ — Thorsten Ball
 
+## Quick Start
+
+To run the Monkey REPL:
+
+```bash
+cargo run
+```
+
+To run tests:
+
+```bash
+cargo test
+```
+
+## Documentation
+
+Comprehensive documentation is available as an mdbook. To build and view the documentation:
+
+```bash
+cd docs
+mdbook serve
+```
+
+The documentation covers:
+
+- Language syntax and features
+- Data types and operations
+- Built-in functions
+- REPL usage
+- Functional programming patterns
+
 ## TODOs
 
 - [x] Lexer
 - [x] Parser
 - [x] Evaluation
 - [x] Extending the Interpreter
+- [x] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
 - [ ] Macro System ("The Lost Chapter")
-- [ ] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
+- [ ] Support multi-line input in REPL with `rustyline`
 
 ## License
 
