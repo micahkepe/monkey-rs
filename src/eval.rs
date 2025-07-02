@@ -364,7 +364,10 @@ fn eval_integer_infix_expression(
         token::Token::Plus => Ok(Rc::new(object::Object::Integer(left_int + right_int))),
         token::Token::Minus => Ok(Rc::new(object::Object::Integer(left_int - right_int))),
         token::Token::Asterisk => Ok(Rc::new(object::Object::Integer(left_int * right_int))),
-        token::Token::Slash => Ok(Rc::new(object::Object::Integer(left_int / right_int))),
+        token::Token::Slash => match right_int {
+            0 => Err(error::EvaluationError::new("division by zero".to_string())),
+            _ => Ok(Rc::new(object::Object::Integer(left_int / right_int))),
+        },
         /* Logical operators */
         token::Token::Gt => Ok(Rc::new(object::Object::Boolean(left_int > right_int))),
         token::Token::Lt => Ok(Rc::new(object::Object::Boolean(left_int < right_int))),
