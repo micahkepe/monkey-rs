@@ -74,7 +74,9 @@ The REPL supports basic line editing features:
 
 ### Multi-line Input
 
-You can enter multi-line expressions and function definitions:
+You can enter multi-line expressions and function definitions by using the "\\"
+character and pressing Enter. You will then be re-prompted with ".. " to
+continue entering your input program:
 
 ```monkey
 >> let factorial = fn(n) { \
@@ -93,11 +95,11 @@ You can enter multi-line expressions and function definitions:
 Here's a complete example session showing various Monkey features:
 
 ```monkey
->> // Define some variables
+// Define some variables
 >> let numbers = [1, 2, 3, 4, 5]
 >> let double = fn(x) { x * 2 }
 
->> // Use built-in functions
+// Use built-in functions
 >> len(numbers)
 5
 >> first(numbers)
@@ -105,7 +107,7 @@ Here's a complete example session showing various Monkey features:
 >> last(numbers)
 5
 
->> // Higher-order function example
+// Higher-order function example
 >> let map = fn(arr, f) {
      let iter = fn(arr, accumulated) {
        if (len(arr) == 0) {
@@ -120,17 +122,17 @@ Here's a complete example session showing various Monkey features:
 >> map(numbers, double)
 [2, 4, 6, 8, 10]
 
->> // Hash map example
+// Hash map example
 >> let person = {"name": "Bob", "age": 30}
 >> person["name"]
 Bob
 
->> // Conditional expressions
+// Conditional expressions
 >> let status = if (person["age"] >= 18) { "adult" } else { "minor" }
 >> status
 adult
 
->> // Recursive function
+// Recursive function
 >> let fibonacci = fn(n) {
      if (n < 2) {
        n
