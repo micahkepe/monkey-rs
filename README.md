@@ -27,10 +27,13 @@ To run tests:
 cargo test
 ```
 
-## Documentation
+## [Documentation](https://micahkepe.com/monkey-rs/)
 
-Comprehensive documentation is available as an mdbook. To build and view the
-documentation:
+Comprehensive documentation is available as a [mdBook](https://github.com/rust-lang/mdBook).
+
+You can view the live site [here](https://micahkepe.com/monkey-rs/)
+
+To build and view the documentation locally:
 
 ```bash
 cd docs
