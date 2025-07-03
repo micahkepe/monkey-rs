@@ -269,6 +269,14 @@ impl<'a> Parser<'a> {
     /// `ast::Expression::If(...)` node of the condition, consequence, and
     /// optional alternative expressions and block statements, respectively.
     fn parse_if_expression(&mut self) -> Result<ast::Expression, error::ParserError> {
+        // Ensure the current token is `If`
+        if !self.current_token_is(&token::Token::If) {
+            return Err(error::ParserError::new(format!(
+                "Expected 'if' token, got {:?}",
+                self.current_token
+            )));
+        }
+
         self.expect_peek_token(&token::Token::LParen)?;
         self.next_token();
 
@@ -299,6 +307,14 @@ impl<'a> Parser<'a> {
     /// Parses the block statement from the current token, which should be on
     /// the opening curly left brace.
     fn parse_block_statement(&mut self) -> Result<ast::BlockStatement, error::ParserError> {
+        // Ensure the current token is `LBrace`
+        if !self.current_token_is(&token::Token::LBrace) {
+            return Err(error::ParserError::new(format!(
+                "Expected '{{' token, got {:?}",
+                self.current_token
+            )));
+        }
+
         // Advance past the opening curly brace
         self.next_token();
 
@@ -320,6 +336,14 @@ impl<'a> Parser<'a> {
 
     /// Parses the function literal from the current token.
     fn parse_function_literal(&mut self) -> Result<ast::Expression, error::ParserError> {
+        // Ensure the current token is `Function`
+        if !self.current_token_is(&token::Token::Function) {
+            return Err(error::ParserError::new(format!(
+                "Expected 'fn' token, got {:?}",
+                self.current_token
+            )));
+        }
+
         self.expect_peek_token(&token::Token::LParen)?;
 
         // Parse the parameters of the function
@@ -815,9 +839,22 @@ mod tests {
     }
 
     #[test]
-    fn test_function_literal_parsing() {
-        let fn_literal_case = [("fn(x, y) { x + y; }", "fn(x, y) { (x + y) }")];
-        check_parse_test_cases(&fn_literal_case);
+    fn test_if_else_function_literal() {
+        let cases = [
+            (
+                "let myFunc = fn() { if (1 > 2) { 10 } else { 20 } };",
+                "let myFunc = fn() { if (1 > 2) { 10 } else { 20 } };",
+            ),
+            (
+                "fn() { if (1 > 2) { 10 } else { 20 } }",
+                "fn() { if (1 > 2) { 10 } else { 20 } }",
+            ),
+            (
+                "let factorial = fn(n) { if (n == 1) { 0 } else { n * factorial(n - 1) } };",
+                "let factorial = fn(n) { if (n == 1) { 0 } else { (n * factorial((n - 1))) } };",
+            ),
+        ];
+        check_parse_test_cases(&cases);
     }
 
     #[test]

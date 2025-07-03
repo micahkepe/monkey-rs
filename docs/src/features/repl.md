@@ -80,12 +80,15 @@ continue entering your input program:
 
 ```monkey
 >> let factorial = fn(n) { \
-..   if (n <= 1) { \
+..   if (n < 2) { \
 ..     1 \
 ..   } else { \
 ..     n * factorial(n - 1) \
 ..   } \
 .. } \
+fn(n) {
+ if (n < 2) { 1 } else { (n * factorial((n - 1))) }
+}
 >> factorial(5)
 120
 ```
@@ -108,16 +111,19 @@ Here's a complete example session showing various Monkey features:
 5
 
 // Higher-order function example
->> let map = fn(arr, f) {
-     let iter = fn(arr, accumulated) {
-       if (len(arr) == 0) {
-         accumulated
-       } else {
-         iter(rest(arr), push(accumulated, f(first(arr))))
-       }
-     }
-     iter(arr, [])
-   }
+>> let map = fn(arr, f) { \
+..   let iter = fn(arr, accumulated) { \
+..     if (len(arr) == 0) { \
+..       accumulated \
+..     } else { \
+..       iter(rest(arr), push(accumulated, f(first(arr)))) \
+..     } \
+..   } \
+..   iter(arr, []) \
+.. }
+fn(arr, f) {
+ let iter = fn(arr, accumulated) { if (len(arr) == 0) { accumulated } else { iter(rest(arr), push(accumulated, f(first(arr)))) } };iter(arr, [])
+}
 
 >> map(numbers, double)
 [2, 4, 6, 8, 10]
@@ -133,19 +139,22 @@ Bob
 adult
 
 // Recursive function
->> let fibonacci = fn(n) {
-     if (n < 2) {
-       n
-     } else {
-       fibonacci(n - 1) + fibonacci(n - 2)
-     }
-   }
-
+>> let fibonacci = fn(n) { \
+..   if (n < 2) { \
+..     n \
+..   } else { \
+..     fibonacci(n - 1) + fibonacci(n - 2) \
+..   } \
+.. }
+fn(n) {
+ if (n < 2) { n } else { (fibonacci((n - 1)) + fibonacci((n - 2))) }
+}
 >> fibonacci(10)
 55
 
 >> puts("Session complete!")
 Session complete!
+null
 ```
 
 ## Error Handling
@@ -162,6 +171,7 @@ null
 >> unknownFunction()
 identifier not found: unknownFunction
 
+// Can continue running commands
 >> 2 + 2
 4
 ```
