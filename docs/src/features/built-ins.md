@@ -1,6 +1,8 @@
 # Built-in Functions
 
-Monkey provides several built-in functions that are available globally without any imports. These functions provide essential operations for working with the language's data types.
+Monkey provides several built-in functions that are available globally without
+any imports. These functions provide essential operations for working with the
+language's data types.
 
 ## Array Functions
 
@@ -17,12 +19,15 @@ let textLength = len(text); // 5
 ```
 
 **Parameters:**
+
 - `array` - An array or string
 
 **Returns:**
+
 - Integer representing the length
 
 **Errors:**
+
 - Throws an error if the argument is not an array or string
 
 ### `first(array)`
@@ -38,12 +43,15 @@ let firstEmpty = first(empty); // null
 ```
 
 **Parameters:**
+
 - `array` - An array
 
 **Returns:**
+
 - The first element of the array, or `null` if the array is empty
 
 **Errors:**
+
 - Throws an error if the argument is not an array
 
 ### `last(array)`
@@ -59,12 +67,15 @@ let lastEmpty = last(empty); // null
 ```
 
 **Parameters:**
+
 - `array` - An array
 
 **Returns:**
+
 - The last element of the array, or `null` if the array is empty
 
 **Errors:**
+
 - Throws an error if the argument is not an array
 
 ### `rest(array)`
@@ -83,17 +94,22 @@ let restEmpty = rest(empty); // null
 ```
 
 **Parameters:**
+
 - `array` - An array
 
 **Returns:**
-- A new array with all elements except the first, or `null` if the array is empty
+
+- A new array with all elements except the first, or `null` if the array is
+  empty
 
 **Errors:**
+
 - Throws an error if the argument is not an array
 
 ### `push(array, element)`
 
-Returns a new array with the element added to the end. The original array is not modified.
+Returns a new array with the element added to the end. The original array is not
+modified.
 
 ```monkey
 let numbers = [1, 2, 3];
@@ -104,13 +120,16 @@ let mixed = push([1, "hello"], true); // [1, "hello", true]
 ```
 
 **Parameters:**
+
 - `array` - An array
 - `element` - Any value to add to the array
 
 **Returns:**
+
 - A new array with the element appended
 
 **Errors:**
+
 - Throws an error if the first argument is not an array
 
 ## Output Functions
@@ -129,12 +148,15 @@ puts("Hello,", name);
 ```
 
 **Parameters:**
+
 - `...args` - Any number of arguments of any type
 
 **Returns:**
+
 - `null`
 
 **Notes:**
+
 - Each argument is printed on a separate line
 - Objects are converted to their string representation
 - Always returns `null`
@@ -210,7 +232,7 @@ puts("Evens:", evens);
 let processText = fn(text) {
   puts("Text:", text);
   puts("Length:", len(text));
-  
+
   if (len(text) > 10) {
     puts("This is a long text");
   } else {

@@ -10,7 +10,8 @@ programming language from Thorsten Ball's
 
 ## What is Monkey?
 
-Monkey is a programming language designed to teach the fundamentals of interpreter construction. It features:
+Monkey is a programming language designed to teach the fundamentals of
+interpreter construction. It features:
 
 - **C-like syntax** that's familiar and easy to read
 - **Variable bindings** with `let` statements
@@ -31,7 +32,8 @@ To start using monkey-rs, you can run the interactive REPL:
 cargo run
 ```
 
-This will launch the Monkey REPL where you can experiment with the language interactively.
+This will launch the Monkey REPL where you can experiment with the language
+interactively.
 
 ## Example Program
 
@@ -53,4 +55,5 @@ let fibonacci = fn(x) {
 fibonacci(10);
 ```
 
-This documentation will guide you through all the features and capabilities of the Monkey programming language as implemented in Rust.
+This documentation will guide you through all the features and capabilities of
+the Monkey programming language as implemented in Rust.

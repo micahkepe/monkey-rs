@@ -1,10 +1,13 @@
 # Syntax
 
-Monkey has a C-like syntax that should feel familiar to programmers coming from languages like JavaScript, C, or Go. This section covers the fundamental syntax elements of the Monkey programming language.
+Monkey has a C-like syntax that should feel familiar to programmers coming from
+languages like JavaScript, C, or Go. This section covers the fundamental syntax
+elements of the Monkey programming language.
 
 ## Identifiers
 
-Identifiers in Monkey must start with a letter, followed by any combination of letters, digits, or underscores:
+Identifiers in Monkey must start with a letter, followed by any combination of
+letters, digits, or underscores:
 
 ```monkey
 let myVariable = 10;
@@ -71,14 +74,16 @@ Monkey distinguishes between statements and expressions:
 
 ## Semicolons
 
-Semicolons are generally optional in Monkey, but they can be used to explicitly terminate statements:
+Semicolons are generally optional in Monkey, but they can be used to explicitly
+terminate statements:
 
 ```monkey
 let x = 5
 let y = 10;
 ```
 
-Both lines above are valid. Semicolons are required when you want to put multiple statements on the same line:
+Both lines above are valid. Semicolons are required when you want to put
+multiple statements on the same line:
 
 ```monkey
 let x = 5; let y = 10;

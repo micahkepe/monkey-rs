@@ -1,6 +1,8 @@
 # Features
 
-Monkey is a feature-rich programming language that supports both imperative and functional programming paradigms. This section covers the main features that make Monkey a powerful and expressive language.
+Monkey is a feature-rich programming language that supports both imperative and
+functional programming paradigms. This section covers the main features that
+make Monkey a powerful and expressive language.
 
 ## Variable Bindings
 
@@ -21,7 +23,8 @@ let x = 5;
 
 ## Functions
 
-Functions are first-class citizens in Monkey, supporting both named and anonymous functions.
+Functions are first-class citizens in Monkey, supporting both named and
+anonymous functions.
 
 ### Function Definition
 
@@ -139,7 +142,8 @@ let hasAge = "age" in person; // Note: 'in' operator may not be implemented
 
 ## String Manipulation
 
-While Monkey doesn't have built-in string concatenation with `+`, it provides string operations through built-in functions:
+While Monkey doesn't have built-in string concatenation with `+`, it provides
+string operations through built-in functions:
 
 ```monkey
 let greeting = "Hello";
@@ -166,24 +170,26 @@ let x = 10;
 
 let outer = fn() {
   let x = 20; // Shadows outer x
-  
+
   let inner = fn() {
     let x = 30; // Shadows both outer x values
     x;
   };
-  
+
   inner(); // Returns 30
 };
 ```
 
 ## Expression-Oriented
 
-Most constructs in Monkey are expressions that return values, making the language very composable:
+Most constructs in Monkey are expressions that return values, making the
+language very composable:
 
 ```monkey
-let result = if (condition) { 
-  fn(x) { x * 2 }(5) 
-} else { 
-  10 
+let result = if (condition) {
+  fn(x) { x * 2 }(5)
+} else {
+  10
 };
 ```
+

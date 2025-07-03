@@ -1,10 +1,13 @@
 # Data Types
 
-Monkey supports several built-in data types that cover the most common programming needs. Each data type has its own characteristics and supported operations.
+Monkey supports several built-in data types that cover the most common
+programming needs. Each data type has its own characteristics and supported
+operations.
 
 ## Integers
 
-Integers in Monkey are 64-bit signed integers. They support standard arithmetic operations:
+Integers in Monkey are 64-bit signed integers. They support standard arithmetic
+operations:
 
 ```monkey
 let age = 25;
@@ -54,13 +57,15 @@ let empty = "";
 
 ### String Operations
 
-- Concatenation is not directly supported with `+`, but you can use built-in functions
+- Concatenation is not directly supported with `+`, but you can use built-in
+  functions
 - Strings can be compared for equality: `"hello" == "hello"` returns `true`
 - String length can be obtained with the `len()` built-in function
 
 ## Arrays
 
-Arrays are ordered collections of elements that can contain different data types:
+Arrays are ordered collections of elements that can contain different data
+types:
 
 ```monkey
 let numbers = [1, 2, 3, 4, 5];
@@ -87,7 +92,8 @@ let extended = push(arr, 4); // [1, 2, 3, 4]
 
 ## Hash Maps
 
-Hash maps (or dictionaries) store key-value pairs. Keys must be hashable types (integers, booleans, or strings):
+Hash maps (or dictionaries) store key-value pairs. Keys must be hashable types
+(integers, booleans, or strings):
 
 ```monkey
 let person = {
@@ -112,7 +118,8 @@ let port = config["port"];        // 8080
 
 ## Functions
 
-Functions are first-class values in Monkey, meaning they can be assigned to variables, passed as arguments, and returned from other functions:
+Functions are first-class values in Monkey, meaning they can be assigned to
+variables, passed as arguments, and returned from other functions:
 
 ```monkey
 let add = fn(a, b) {

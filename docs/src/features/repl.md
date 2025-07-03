@@ -1,6 +1,8 @@
 # REPL
 
-The Monkey REPL (Read-Eval-Print Loop) provides an interactive environment for experimenting with the Monkey programming language. It's perfect for learning, testing code snippets, and exploring language features.
+The Monkey REPL (Read-Eval-Print Loop) provides an interactive environment for
+experimenting with the Monkey programming language. It's perfect for learning,
+testing code snippets, and exploring language features.
 
 ## Starting the REPL
 
@@ -192,4 +194,7 @@ The REPL is implemented using the `rustyline` crate, which provides:
 - Command history management
 - Cross-platform terminal handling
 
-The REPL maintains a shared environment across all evaluations, allowing for persistent state throughout your session. Each input is parsed into an AST and evaluated using the same interpreter engine that would process Monkey source files.
+The REPL maintains a shared environment across all evaluations, allowing for
+persistent state throughout your session. Each input is parsed into an AST and
+evaluated using the same interpreter engine that would process Monkey source
+files.

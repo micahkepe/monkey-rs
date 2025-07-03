@@ -1,6 +1,9 @@
 # Functional Programming in Monkey
 
-Monkey is designed with functional programming as a first-class paradigm. Functions are values that can be passed around, stored in variables, and used to build powerful abstractions. This chapter explores the functional programming capabilities of Monkey.
+Monkey is designed with functional programming as a first-class paradigm.
+Functions are values that can be passed around, stored in variables, and used to
+build powerful abstractions. This chapter explores the functional programming
+capabilities of Monkey.
 
 ## First-Class Functions
 
@@ -25,7 +28,8 @@ let result = operations[0](10, 5); // 15
 
 ## Higher-Order Functions
 
-Higher-order functions are functions that either take other functions as parameters or return functions as results.
+Higher-order functions are functions that either take other functions as
+parameters or return functions as results.
 
 ### Functions that Take Functions
 
@@ -51,7 +55,8 @@ let result = add5(10); // 15
 
 ## Closures
 
-Monkey functions are closures, meaning they capture and remember the environment in which they were created:
+Monkey functions are closures, meaning they capture and remember the environment
+in which they were created:
 
 ```monkey
 let makeCounter = fn() {
@@ -167,7 +172,8 @@ let result = add1ThenMultiply2(5); // (5 + 1) * 2 = 12
 
 ## Currying
 
-Currying transforms a function that takes multiple arguments into a series of functions that each take a single argument:
+Currying transforms a function that takes multiple arguments into a series of
+functions that each take a single argument:
 
 ```monkey
 let curry = fn(f) {
@@ -243,7 +249,8 @@ let result = pipe(numbers, pipeline); // 18
 2. **Composability**: Small functions can be combined to create complex behavior
 3. **Reusability**: Generic functions like `map` and `filter` work with any data
 4. **Testability**: Pure functions are easier to test and reason about
-5. **Expressiveness**: Functional code often reads like a description of what you want
+5. **Expressiveness**: Functional code often reads like a description of what
+   you want
 
 ## Recursive Patterns
 
@@ -271,4 +278,7 @@ let traverse = fn(tree, visitor) {
 };
 ```
 
-Functional programming in Monkey provides a powerful and elegant way to solve problems by composing simple, reusable functions. The language's support for closures, higher-order functions, and immutable data structures makes it well-suited for functional programming patterns.
+Functional programming in Monkey provides a powerful and elegant way to solve
+problems by composing simple, reusable functions. The language's support for
+closures, higher-order functions, and immutable data structures makes it
+well-suited for functional programming patterns.
