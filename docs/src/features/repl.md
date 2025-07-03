@@ -77,13 +77,13 @@ The REPL supports basic line editing features:
 You can enter multi-line expressions and function definitions:
 
 ```monkey
->> let factorial = fn(n) {
-     if (n <= 1) {
-       1
-     } else {
-       n * factorial(n - 1)
-     }
-   }
+>> let factorial = fn(n) { \
+..   if (n <= 1) { \
+..     1 \
+..   } else { \
+..     n * factorial(n - 1) \
+..   } \
+.. } \
 >> factorial(5)
 120
 ```

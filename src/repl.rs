@@ -43,11 +43,46 @@ pub fn start() -> Result<()> {
 
     loop {
         let readline = rl.readline(">> ");
+        let mut input = String::new();
 
         match readline {
-            Ok(input) => {
-                if input.is_empty() {
+            Ok(mut line) => {
+                while line.ends_with(' ') {
+                    line.pop();
+                }
+                if line.is_empty() {
                     continue;
+                }
+
+                loop {
+                    if line.as_bytes().ends_with(b"\\") {
+                        // Strip final backslash and add to current input
+                        line.pop();
+                        input += &line;
+
+                        // Re-prompt for additional lines
+                        match rl.readline(".. ") {
+                            Ok(next) => {
+                                line = next;
+                                while line.ends_with(' ') {
+                                    line.pop();
+                                }
+                            }
+                            Err(ReadlineError::Eof | ReadlineError::Interrupted) => {
+                                println!("Exiting...");
+                                rl.save_history(history_path)?;
+                                return Ok(());
+                            }
+                            Err(err) => {
+                                println!("Error: {:?}", err);
+                                return Err(err);
+                            }
+                        }
+                    } else {
+                        // Final line
+                        input += &line;
+                        break;
+                    }
                 }
 
                 rl.add_history_entry(&input)?;

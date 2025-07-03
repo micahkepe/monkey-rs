@@ -29,7 +29,8 @@ cargo test
 
 ## Documentation
 
-Comprehensive documentation is available as an mdbook. To build and view the documentation:
+Comprehensive documentation is available as an mdbook. To build and view the
+documentation:
 
 ```bash
 cd docs
@@ -51,8 +52,8 @@ The documentation covers:
 - [x] Evaluation
 - [x] Extending the Interpreter
 - [x] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
+- [x] Support multi-line input in REPL with `rustyline`
 - [ ] Macro System ("The Lost Chapter")
-- [ ] Support multi-line input in REPL with `rustyline`
 
 ## License
 
