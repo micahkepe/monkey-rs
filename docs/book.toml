@@ -3,3 +3,7 @@ authors = ["micahkepe"]
 language = "en"
 src = "src"
 title = "monkey-rs Documentation"
+
+[output.html]
+git-repository-url = "https://github.com/micahkepe/monkey-rs"
+edit-url-template = "https://github.com/micahkepe/monkey-rs/edit/main/docs/{path}"
