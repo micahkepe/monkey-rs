@@ -59,21 +59,14 @@ Monkey functions are closures, meaning they capture and remember the environment
 in which they were created:
 
 ```monkey
-let makeCounter = fn() {
-  let count = 0;
-  fn() {
-    count = count + 1;
-    count;
-  };
+// `newAdder` returns a closure that makes use of the free variables `a` and `b`:
+let newAdder = fn(a, b) {
+    fn(c) { a + b + c };
 };
+// This constructs a new `adder` function:
+let adder = newAdder(1, 2);
 
-let counter1 = makeCounter();
-let counter2 = makeCounter();
-
-counter1(); // 1
-counter1(); // 2
-counter2(); // 1 (independent counter)
-counter1(); // 3
+adder(8); // => 11
 ```
 
 ## Common Functional Patterns
@@ -122,8 +115,8 @@ let filter = fn(arr, predicate) {
 };
 
 let numbers = [1, 2, 3, 4, 5, 6];
-let isEven = fn(x) { x % 2 == 0 };
-let evens = filter(numbers, isEven); // [2, 4, 6]
+let isMoreThanTwo = fn(x) { x > 2 };
+let evens = filter(numbers, isMoreThanTwo); // [3, 4, 5, 6]
 ```
 
 ### Reduce

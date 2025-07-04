@@ -6,7 +6,7 @@ interpreting the parsed AST representation of the source code "on the fly."
 */
 /* Modules */
 pub(crate) mod builtin;
-pub(crate) mod environment;
+pub mod environment;
 pub mod error;
 pub(crate) mod object;
 

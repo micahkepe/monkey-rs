@@ -52,7 +52,7 @@ let fibonacci = fn(x) {
   }
 };
 
-fibonacci(10); // -> 55
+fibonacci(10); // => 55
 ```
 
 This documentation will guide you through all the features and capabilities of

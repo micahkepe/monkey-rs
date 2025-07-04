@@ -512,7 +512,7 @@ impl<'a> Parser<'a> {
                 }
                 Some(token::Token::LBracket) => {
                     self.next_token();
-                    let expr = left_expr.unwrap();
+                    let expr = left_expr?;
                     left_expr = self.parse_index_expresssion(expr);
                 }
                 Some(_) => {
