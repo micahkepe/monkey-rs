@@ -65,8 +65,8 @@ fn main() -> Result<()> {
         let input = std::fs::read_to_string(file)?;
         let env: Env = Rc::new(RefCell::new(Default::default()));
 
-        // NOTE: only `puts(...)` statements the last executed statement will be
-        // emitted to STDOUT
+        // NOTE: only `puts(...)` statements and the last evaluated statement
+        // will be emitted to STDOUT
         match parser::parse(&input) {
             Ok(program) => match eval::eval(program, &Rc::clone(&env)) {
                 Ok(evaluated) => println!("{}", evaluated),

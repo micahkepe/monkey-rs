@@ -57,8 +57,8 @@ cargo run -- path/to/file.monkey
 
 > [!NOTE]
 > The file must have a `.monkey` extension, or the program will exit with an error
-> message. Only the last evaluated `puts(...)` statement's output is printed to
-> `stdout`.
+> message. Only the last evaluated statement's output is printed to
+> `stdout` (alongside any `puts(...)` statements).
 
 ## [Documentation](https://micahkepe.com/monkey-rs/)
 
