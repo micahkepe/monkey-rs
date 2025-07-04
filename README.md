@@ -13,11 +13,15 @@ language from Thorsten Ball's [Writing An Interpreter In Go](https://interpreter
 > magnificent, elegant, fascinating and funny creatures. Exactly like our
 > interpreter"_ — Thorsten Ball
 
+<div align="center">
+    <img src="./assets/img/repl.png" width="73%" alt="monkey-rs REPL"/>
+</div>
+
 ## Quick Start
 
 ### Usage:
 
-```bash
+```
 Runs and evaluates the Monkey source file (`*.monkey`), if provided, else starts a Monkey REPL session to run Monkey code
 
 Usage: main [FILE]
@@ -33,13 +37,13 @@ Options:
 
 To run the Monkey REPL:
 
-```bash
+```
 cargo run
 ```
 
 To run tests:
 
-```bash
+```
 cargo test
 ```
 
@@ -47,7 +51,7 @@ cargo test
 
 To run a Monkey source file:
 
-```bash
+```
 cargo run -- path/to/file.monkey
 ```
 
