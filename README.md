@@ -38,7 +38,7 @@ Options:
 To run the Monkey REPL:
 
 ```
-cargo run
+cargo run --release
 ```
 
 To run tests:
@@ -52,7 +52,7 @@ cargo test
 To run a Monkey source file:
 
 ```
-cargo run -- path/to/file.monkey
+cargo run --release -- path/to/file.monkey
 ```
 
 > [!NOTE]

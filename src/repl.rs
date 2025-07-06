@@ -80,6 +80,9 @@ pub fn start() -> Result<()> {
                         }
                     } else {
                         // Final line
+                        while line.ends_with(' ') {
+                            line.pop();
+                        }
                         input += &line;
                         break;
                     }
