@@ -14,3 +14,7 @@ license = "MIT"
 [dependencies]
 clap = { version = "4.5.40", features = ["derive"] }
 rustyline = "16.0.0"
+
+[[bin]]
+name = "monkey"
+path = "src/bin/main.rs"

@@ -24,7 +24,7 @@ language from Thorsten Ball's [Writing An Interpreter In Go](https://interpreter
 ```
 Runs and evaluates the Monkey source file (`*.monkey`), if provided, else starts a Monkey REPL session to run Monkey code
 
-Usage: main [FILE]
+Usage: monkey [FILE]
 
 Arguments:
   [FILE]  Path to a Monkey source file to execute (must have `.monkey` extension)
@@ -80,16 +80,6 @@ The documentation covers:
 - Built-in functions
 - REPL usage
 - Functional programming patterns
-
-## TODOs
-
-- [x] Lexer
-- [x] Parser
-- [x] Evaluation
-- [x] Extending the Interpreter
-- [x] Documentation with [`mdbook`](https://github.com/rust-lang/mdBook)
-- [x] Support multi-line input in REPL with `rustyline`
-- [ ] Macro System ("The Lost Chapter")
 
 ## Contributing
 
